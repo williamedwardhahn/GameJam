@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#120e18">
+<title>Midnight War</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bungee&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --night:#120e18;
+  --night2:#1b1526;
+  --night3:#241c33;
+  --bone:#ece4d2;
+  --muted:#8f849e;
+  --crimson:#d81e3f;
+  --crimson-dim:#5c1122;
+  --bile:#a8c62b;
+  --bile-dim:#3d4a10;
+  --gold:#f0b429;
+  --side:var(--crimson);
+  --side-dim:var(--crimson-dim);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  background:var(--night);
+  color:var(--bone);
+  font-family:"Space Grotesk",system-ui,-apple-system,sans-serif;
+  overflow:hidden;
+  user-select:none;-webkit-user-select:none;
+  touch-action:manipulation;
+}
+#app{
+  position:relative;
+  width:100%;max-width:520px;height:100vh;height:100dvh;
+  margin:0 auto;overflow:hidden;
+  background:
+    radial-gradient(120% 55% at 50% -8%, #2c2340 0%, #171126 45%, var(--night) 78%);
+  display:flex;flex-direction:column;
+}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.screen{position:absolute;inset:0;display:none;flex-direction:column;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+.screen.on{display:flex}
+
+/* ---------- title ---------- */
+#title{padding:0}
+.split{position:absolute;inset:0}
+.half{position:absolute;left:0;right:0;display:flex;flex-direction:column;justify-content:center;padding:0 26px}
+.half.top{top:0;height:56%;background:linear-gradient(180deg,#3a0a19,#7d0f27);clip-path:polygon(0 0,100% 0,100% 88%,0 100%)}
+.half.bot{bottom:0;height:56%;background:linear-gradient(180deg,#2a3a09,#4e6b12);clip-path:polygon(0 12%,100% 0,100% 100%,0 100%);justify-content:flex-end;padding-bottom:34px}
+.half.top{padding-top:26px;justify-content:flex-start}
+.faction-tag{font-size:12px;letter-spacing:.16em;text-transform:uppercase;opacity:.72}
+.faction-name{font-family:Bungee,sans-serif;font-size:clamp(30px,10vw,44px);line-height:1;margin:6px 0 8px}
+.faction-line{font-size:14px;max-width:19em;opacity:.86;line-height:1.45}
+.perk{margin-top:12px;display:inline-block;font-size:12.5px;padding:5px 11px;border:1px solid rgba(236,228,210,.4);border-radius:999px;align-self:flex-start}
+.pickbtn{margin-top:16px;align-self:flex-start;background:var(--bone);color:#1a1420;font-weight:700;font-size:15px;padding:13px 22px;border-radius:4px;transition:transform .1s}
+.pickbtn:active{transform:scale(.96)}
+.logo{
+  position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);
+  text-align:center;z-index:3;pointer-events:none;
+}
+.logo b{
+  display:inline-block;font-family:Bungee,sans-serif;font-weight:400;
+  font-size:clamp(26px,8.6vw,38px);line-height:1.06;letter-spacing:.02em;
+  background:var(--night);padding:10px 16px;border:2px solid var(--bone);
+  box-shadow:0 0 0 4px var(--night);
+}
+.logo small{display:block;font-family:"Space Grotesk";font-size:11.5px;letter-spacing:.24em;text-transform:uppercase;margin-top:10px;color:#cfc6b6}
+
+/* ---------- hud ---------- */
+.hud{display:flex;align-items:center;gap:10px;padding:12px 14px 8px;flex:0 0 auto}
+.pill{font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.hearts{display:flex;gap:4px;margin-left:auto}
+.heart{width:11px;height:11px;background:var(--side);border-radius:2px;transform:rotate(45deg)}
+.heart.dead{background:#3a3348}
+.score{font-family:Bungee,sans-serif;font-size:19px;color:var(--gold);min-width:70px;text-align:right}
+.bar{height:4px;background:#2a2338;margin:0 14px;border-radius:99px;overflow:hidden;flex:0 0 auto}
+.bar i{display:block;height:100%;background:var(--side);width:100%;border-radius:99px}
+.rule{padding:10px 16px 0;font-size:13px;color:#b7aec2;text-align:center;min-height:20px}
+
+/* ---------- stage ---------- */
+#stage{position:relative;flex:1;margin:8px 12px 14px;border:1px solid #2c2440;border-radius:10px;overflow:hidden;background:#150f21}
+.flash{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .18s}
+.flash.red{background:rgba(216,30,63,.34);opacity:1;transition:none}
+.combo{position:absolute;top:8px;left:50%;transform:translateX(-50%);font-size:12px;color:var(--gold);letter-spacing:.1em;opacity:0;transition:opacity .3s}
+
+/* falling items */
+.drop{position:absolute;top:0;width:56px;height:56px;font-size:31px;line-height:56px;text-align:center;
+  border-radius:50%;background:#221a33;border:1px solid #382c52;animation:fall linear forwards}
+@keyframes fall{from{transform:translateY(-70px)}to{transform:translateY(var(--fall))}}
+.pop{position:absolute;font-size:15px;font-weight:700;pointer-events:none;animation:pop .6s ease-out forwards}
+@keyframes pop{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(-42px)}}
+
+/* dawn */
+.track{position:absolute;left:22px;right:22px;top:50%;transform:translateY(-50%);height:60px;background:#1e1730;border-radius:8px;overflow:hidden}
+.safe{position:absolute;top:0;bottom:0;background:var(--side-dim);border-left:2px solid var(--side);border-right:2px solid var(--side)}
+.mark{position:absolute;top:-6px;bottom:-6px;width:5px;background:var(--bone);border-radius:3px}
+.sun{position:absolute;left:0;right:0;top:16px;text-align:center;font-size:13px;color:#b7aec2}
+.tapzone{position:absolute;inset:0}
+.dawnhint{position:absolute;left:0;right:0;bottom:22px;text-align:center;font-size:13px;color:var(--muted)}
+
+/* simon */
+.grid4{position:absolute;inset:0;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:8px;padding:8px}
+.tile{border-radius:10px;background:#241c38;display:flex;align-items:center;justify-content:center;font-size:33px;transition:background .1s,transform .1s}
+.tile.lit{background:var(--side);transform:scale(.97)}
+.status{position:absolute;left:0;right:0;top:10px;text-align:center;font-size:13px;color:#b7aec2;z-index:2;pointer-events:none}
+
+/* mole */
+.grid9{position:absolute;inset:0;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:7px;padding:8px}
+.hole{border-radius:8px;background:#1d1630;position:relative;overflow:hidden;display:flex;align-items:flex-end;justify-content:center}
+.hole::after{content:"";position:absolute;bottom:0;left:12%;right:12%;height:34%;background:#2a2140;border-radius:6px 6px 0 0}
+.mole{position:relative;z-index:2;font-size:30px;transform:translateY(120%);transition:transform .16s;margin-bottom:6%}
+.mole.up{transform:translateY(0)}
+
+/* tug */
+.tug{position:absolute;left:20px;right:20px;top:46%;transform:translateY(-50%);height:38px;background:#4e6b12;border-radius:8px;overflow:hidden}
+.tug i{display:block;height:100%;background:#7d0f27;width:50%;transition:width .08s linear}
+.tugline{position:absolute;left:50%;top:calc(46% - 34px);width:2px;height:68px;background:rgba(236,228,210,.45)}
+.smash{position:absolute;left:26px;right:26px;bottom:26px;height:78px;border-radius:10px;background:var(--side);color:#fff;font-family:Bungee,sans-serif;font-size:22px;display:flex;align-items:center;justify-content:center;transition:transform .06s}
+.smash:active{transform:scale(.97)}
+.tuglabel{position:absolute;left:0;right:0;top:calc(46% + 34px);display:flex;justify-content:space-between;padding:10px 20px 0;font-size:12px;color:var(--muted)}
+
+/* ---------- panels ---------- */
+.panel{flex:1;display:flex;flex-direction:column;justify-content:center;padding:26px 24px;gap:14px;overflow-y:auto}
+.eyebrow{font-size:11.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
+h1.big{font-family:Bungee,sans-serif;font-weight:400;font-size:clamp(26px,8vw,34px);line-height:1.1}
+.body{font-size:15px;line-height:1.55;color:#c9c0d4;max-width:30em}
+.stats{display:flex;gap:10px;margin-top:4px}
+.stat{flex:1;background:#1c1529;border:1px solid #2c2440;border-radius:10px;padding:12px}
+.stat span{display:block;font-size:11.5px;color:var(--muted);margin-bottom:3px}
+.stat b{font-family:Bungee,sans-serif;font-weight:400;font-size:20px}
+.meter{margin-top:6px}
+.meter .track2{height:22px;background:#4e6b12;border-radius:6px;overflow:hidden;position:relative}
+.meter .track2 i{display:block;height:100%;background:#a01530;width:50%;transition:width .9s cubic-bezier(.2,.8,.2,1)}
+.meter .lab{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-top:6px}
+.cards{display:flex;flex-direction:column;gap:10px}
+.card{text-align:left;background:#1c1529;border:1px solid #33294a;border-radius:10px;padding:14px 16px;transition:border-color .15s,transform .1s}
+.card:active{transform:scale(.985)}
+.card b{display:block;font-size:16px;margin-bottom:3px}
+.card span{font-size:13.5px;color:#a89dba;line-height:1.4}
+.card.taken{opacity:.45}
+.go{background:var(--bone);color:#1a1420;font-weight:700;font-size:16px;padding:16px;border-radius:6px;text-align:center;transition:transform .1s}
+.go:active{transform:scale(.97)}
+.ghost{border:1px solid #3a3050;color:#b7aec2;font-size:14px;padding:13px;border-radius:6px;text-align:center}
+.mute{position:absolute;top:calc(10px + env(safe-area-inset-top));right:12px;z-index:9;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:6px 9px;border:1px solid #33294a;border-radius:99px}
+.tick{color:var(--gold)}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <button class="mute" id="mute" aria-label="Toggle sound">sound on</button>
+
+  <!-- TITLE -->
+  <section class="screen on" id="title">
+    <div class="split">
+      <div class="half top">
+        <p class="faction-tag">The coven</p>
+        <h2 class="faction-name">Vampires</h2>
+        <p class="faction-line">Old money, older hunger. Fast hands, thin skin.</p>
+        <p class="perk">Every hit scores 10% more</p>
+        <button class="pickbtn" data-side="vamp">Take the coven</button>
+      </div>
+      <div class="half bot">
+        <p class="faction-tag">The horde</p>
+        <h2 class="faction-name">Zombies</h2>
+        <p class="faction-line">No plan, no pulse, no quit. Slow, but hard to finish.</p>
+        <p class="perk">One extra heart every night</p>
+        <button class="pickbtn" data-side="zom">Join the horde</button>
+      </div>
+    </div>
+    <div class="logo"><b>Midnight<br>War</b><small>five nights &middot; one city</small></div>
+  </section>
+
+  <!-- BRIEFING -->
+  <section class="screen" id="brief">
+    <div class="panel">
+      <p class="eyebrow" id="b-eyebrow">Night 1 of 5</p>
+      <h1 class="big" id="b-title">The feast</h1>
+      <p class="body" id="b-rule"></p>
+      <p class="body" id="b-taunt" style="color:var(--side)"></p>
+      <div class="stats">
+        <div class="stat"><span>Your turf</span><b id="b-turf">50%</b></div>
+        <div class="stat"><span>Hearts</span><b id="b-hearts">3</b></div>
+      </div>
+      <button class="go" id="b-go">Start the night</button>
+    </div>
+  </section>
+
+  <!-- PLAY -->
+  <section class="screen" id="play">
+    <div class="hud">
+      <span class="pill" id="p-night">Night 1</span>
+      <span class="hearts" id="p-hearts"></span>
+      <span class="score" id="p-score">0</span>
+    </div>
+    <div class="bar"><i id="p-bar"></i></div>
+    <p class="rule" id="p-rule"></p>
+    <div id="stage"></div>
+  </section>
+
+  <!-- RESULT -->
+  <section class="screen" id="result">
+    <div class="panel">
+      <p class="eyebrow" id="r-eyebrow">Night 1 over</p>
+      <h1 class="big" id="r-title">Fed well</h1>
+      <div class="stats">
+        <div class="stat"><span>Scored</span><b id="r-score">0</b></div>
+        <div class="stat"><span>Target</span><b id="r-par">0</b></div>
+      </div>
+      <div class="meter">
+        <div class="track2"><i id="r-fill"></i></div>
+        <div class="lab"><span id="r-l">Vampires 50%</span><span id="r-r">50% Zombies</span></div>
+      </div>
+      <p class="body" id="r-note"></p>
+      <button class="go" id="r-go">Next</button>
+    </div>
+  </section>
+
+  <!-- UPGRADE -->
+  <section class="screen" id="up">
+    <div class="panel">
+      <p class="eyebrow">Between nights</p>
+      <h1 class="big">Pick one gift</h1>
+      <div class="cards" id="u-cards"></div>
+    </div>
+  </section>
+
+  <!-- END -->
+  <section class="screen" id="end">
+    <div class="panel">
+      <p class="eyebrow">Dawn, five days later</p>
+      <h1 class="big" id="e-title">The city is yours</h1>
+      <p class="body" id="e-body"></p>
+      <div class="stats">
+        <div class="stat"><span>Final turf</span><b id="e-turf">50%</b></div>
+        <div class="stat"><span>Total score</span><b id="e-score">0</b></div>
+      </div>
+      <button class="go" id="e-again">Play again</button>
+      <button class="ghost" id="e-swap">Switch sides</button>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+"use strict";
+const $ = s => document.querySelector(s);
+const pick = a => a[Math.floor(Math.random()*a.length)];
+const clamp = (v,a,b) => Math.max(a,Math.min(b,v));
+
+/* ---------- sound ---------- */
+let ac=null, sound=true;
+function beep(freq,dur,type,vol){
+  if(!sound) return;
+  try{
+    if(!ac) ac = new (window.AudioContext||window.webkitAudioContext)();
+    const o=ac.createOscillator(), g=ac.createGain();
+    o.type=type||"square"; o.frequency.value=freq;
+    g.gain.value=vol||.05;
+    g.gain.exponentialRampToValueAtTime(.0001, ac.currentTime+(dur||.09));
+    o.connect(g); g.connect(ac.destination);
+    o.start(); o.stop(ac.currentTime+(dur||.09));
+  }catch(e){}
+}
+const sfx={
+  good(){beep(660,.07,"square",.05); setTimeout(()=>beep(880,.07,"square",.04),50);},
+  bad(){beep(120,.22,"sawtooth",.07);},
+  tick(){beep(440,.04,"square",.03);},
+  win(){[523,659,784,1046].forEach((f,i)=>setTimeout(()=>beep(f,.14,"triangle",.06),i*90));},
+  lose(){[330,262,196].forEach((f,i)=>setTimeout(()=>beep(f,.2,"sawtooth",.06),i*130));}
+};
+function buzz(ms){ if(sound && navigator.vibrate) try{navigator.vibrate(ms);}catch(e){} }
+$("#mute").onclick = e => { sound=!sound; e.target.textContent = sound?"sound on":"sound off"; if(sound) beep(660,.06); };
+
+/* ---------- state ---------- */
+const SIDES = {
+  vamp:{ name:"Vampires", foe:"Zombies", mult:1.1, hearts:3, crest:"🦇",
+         good:["🩸","🍷","🫀","💉"], bad:["🧄","✝️","🪵","☀️"],
+         goodName:"blood", badName:"garlic and stakes" },
+  zom:{  name:"Zombies", foe:"Vampires", mult:1.0, hearts:4, crest:"🧟",
+         good:["🧠","🦴","🫁","🍖"], bad:["🔥","🪓","💣","🔫"],
+         goodName:"brains", badName:"fire and axes" }
+};
+let S = null;
+function reset(side){
+  S = { side, turf:50, score:0, hearts:0, night:0, perks:[], nightScore:0, log:[] };
+}
+
+const PERKS = [
+  {id:"fangs", name:"Sharper hunger", desc:"Every point you score is worth 20% more."},
+  {id:"heart", name:"Stubborn body", desc:"Start each night with one extra heart."},
+  {id:"slow",  name:"Thick night", desc:"Everything moves 18% slower. Easier to read."},
+  {id:"armor", name:"Old scars", desc:"Your first mistake each night costs nothing."},
+  {id:"combo", name:"Frenzy", desc:"Every 4th hit in a row is worth double."}
+];
+const has = id => S.perks.includes(id);
+function mult(){ return SIDES[S.side].mult * (has("fangs")?1.2:1); }
+function slow(){ return has("slow")?1.18:1; }
+function startHearts(){ return SIDES[S.side].hearts + (has("heart")?1:0); }
+
+/* ---------- screens ---------- */
+function show(id){
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("on"));
+  $("#"+id).classList.add("on");
+}
+function setSideColors(){
+  const r=document.documentElement;
+  if(S.side==="vamp"){ r.style.setProperty("--side","var(--crimson)"); r.style.setProperty("--side-dim","var(--crimson-dim)"); }
+  else { r.style.setProperty("--side","var(--bile)"); r.style.setProperty("--side-dim","var(--bile-dim)"); }
+}
+
+/* ---------- timers ---------- */
+let live={raf:[],to:[],iv:[]};
+function later(fn,ms){const t=setTimeout(fn,ms);live.to.push(t);return t;}
+function every(fn,ms){const t=setInterval(fn,ms);live.iv.push(t);return t;}
+function raf(fn){const id=requestAnimationFrame(fn);live.raf.push(id);return id;}
+function clearLive(){
+  live.raf.forEach(cancelAnimationFrame); live.to.forEach(clearTimeout); live.iv.forEach(clearInterval);
+  live={raf:[],to:[],iv:[]};
+}
+
+/* ---------- play chrome ---------- */
+const stage=$("#stage");
+let hearts=0, mistakesFree=0, streak=0, running=false, endGame=null;
+
+function drawHearts(){
+  const box=$("#p-hearts"); box.innerHTML="";
+  const total=startHearts();
+  for(let i=0;i<total;i++){
+    const h=document.createElement("i");
+    h.className="heart"+(i<hearts?"":" dead");
+    box.appendChild(h);
+  }
+}
+function addScore(n,x,y,label){
+  const v=Math.round(n*mult()*(has("combo")&&streak>0&&streak%4===0?2:1));
+  S.nightScore+=v;
+  $("#p-score").textContent=S.nightScore.toLocaleString();
+  if(x!=null){
+    const p=document.createElement("div");
+    p.className="pop"; p.style.left=x+"px"; p.style.top=y+"px";
+    p.style.color= v>0?"var(--gold)":"var(--crimson)";
+    p.textContent=(label||(v>0?"+"+v:v));
+    stage.appendChild(p); setTimeout(()=>p.remove(),620);
+  }
+}
+function hit(pts,x,y){ streak++; sfx.good(); addScore(pts,x,y); }
+function miss(x,y,pts){
+  streak=0;
+  if(mistakesFree>0){ mistakesFree--; sfx.tick(); addScore(0,x,y,"scar"); return; }
+  hearts--; drawHearts(); sfx.bad(); buzz(45);
+  if(pts) addScore(pts,x,y);
+  const f=document.createElement("div"); f.className="flash red"; stage.appendChild(f);
+  setTimeout(()=>{f.classList.remove("red"); setTimeout(()=>f.remove(),200);},60);
+  if(hearts<=0 && endGame) endGame(true);
+}
+
+/* ---------- the five nights ---------- */
+const NIGHTS=[
+{
+  key:"feast", title:"The feast", par:1500,
+  brief:s=>`Food falls out of the dark. Tap ${SIDES[s].goodName}. Do not touch ${SIDES[s].badName}.`,
+  rule:"Tap food. Avoid the sharp stuff.",
+  taunt:{vamp:"The horde eats anything. You have standards.",zom:"The coven sips. You chew."},
+  time:32,
+  run(){
+    const S1=SIDES[S.side];
+    const H=stage.clientHeight;
+    let gap=760/slow();
+    const spawn=()=>{
+      if(!running) return;
+      const good=Math.random()>.36;
+      const el=document.createElement("button");
+      el.className="drop";
+      el.setAttribute("aria-label", good?"food":"danger");
+      el.textContent=pick(good?S1.good:S1.bad);
+      el.style.left=(6+Math.random()*74)+"%";
+      el.style.setProperty("--fall",(H+80)+"px");
+      el.style.animationDuration=((2.3+Math.random()*.7)*slow())+"s";
+      el.addEventListener("pointerdown",ev=>{
+        ev.preventDefault();
+        const r=el.getBoundingClientRect(), s=stage.getBoundingClientRect();
+        const x=r.left-s.left, y=r.top-s.top;
+        if(good) hit(120,x,y); else miss(x,y,-90);
+        el.remove();
+      });
+      el.addEventListener("animationend",()=>el.remove());
+      stage.appendChild(el);
+      gap=Math.max(300,gap*.975);
+      later(spawn,gap);
+    };
+    later(spawn,400);
+  }
+},
+{
+  key:"dawn", title:"Beat the sun", par:1400,
+  brief:()=>"The sun is coming up. Stop the runner inside the shadow. The shadow gets thinner every round.",
+  rule:"Tap to stop the runner in the shadow.",
+  taunt:{vamp:"Sunlight is the only thing that has ever beaten you.",zom:"You do not burn, but you do bake."},
+  rounds:7,
+  run(){
+    let round=0, pos=0, dir=1, speed=1.1, safeL=30, safeW=34, stopped=false;
+    const track=document.createElement("div"); track.className="track";
+    const safe=document.createElement("div"); safe.className="safe";
+    const mark=document.createElement("div"); mark.className="mark";
+    track.appendChild(safe); track.appendChild(mark);
+    const sun=document.createElement("div"); sun.className="sun";
+    const hint=document.createElement("div"); hint.className="dawnhint"; hint.textContent="tap anywhere";
+    const zone=document.createElement("div"); zone.className="tapzone";
+    stage.appendChild(track); stage.appendChild(sun); stage.appendChild(hint); stage.appendChild(zone);
+
+    function setup(){
+      stopped=false;
+      safeW=Math.max(9,34-round*3.6);
+      safeL=8+Math.random()*(84-safeW);
+      safe.style.left=safeL+"%"; safe.style.width=safeW+"%";
+      speed=(1.05+round*.34)/slow();
+      pos=0; dir=1;
+      sun.textContent="round "+(round+1)+" of 7 — shadow "+Math.round(safeW)+"% wide";
+    }
+    function step(){
+      if(!running) return;
+      if(!stopped){
+        pos+=dir*speed;
+        if(pos>=100){pos=100;dir=-1;} if(pos<=0){pos=0;dir=1;}
+        mark.style.left="calc("+pos+"% - 2px)";
+      }
+      raf(step);
+    }
+    zone.addEventListener("pointerdown",ev=>{
+      ev.preventDefault();
+      if(stopped||!running) return;
+      stopped=true;
+      const inside = pos>=safeL && pos<=safeL+safeW;
+      const centre = Math.abs(pos-(safeL+safeW/2));
+      const r=track.getBoundingClientRect(), s=stage.getBoundingClientRect();
+      const x=r.left-s.left+r.width*pos/100-18, y=r.top-s.top-10;
+      if(inside){
+        const bull = centre < safeW*0.16;
+        hit(bull?420:230,x,y);
+        if(bull){ sun.textContent="dead centre"; }
+      } else miss(x,y,-60);
+      round++;
+      if(round>=7 || hearts<=0){ later(()=>endGame&&endGame(false),650); }
+      else later(setup,650);
+    });
+    setup(); step();
+  }
+},
+{
+  key:"code", title:"The crypt code", par:1600,
+  brief:()=>"Four locks under the old church. Watch the order they light up, then repeat it. One slip costs a heart.",
+  rule:"Watch, then repeat the order.",
+  taunt:{vamp:"You built these crypts. Try to remember the door.",zom:"Memory is not your strong suit. Try anyway."},
+  rounds:6,
+  run(){
+    const glyphs=["🕯️","⚰️","🕸️","🗝️"];
+    const grid=document.createElement("div"); grid.className="grid4";
+    const status=document.createElement("div"); status.className="status";
+    const tiles=glyphs.map((g,i)=>{
+      const t=document.createElement("button"); t.className="tile"; t.textContent=g;
+      t.setAttribute("aria-label","lock "+(i+1));
+      grid.appendChild(t); return t;
+    });
+    stage.appendChild(grid); stage.appendChild(status);
+    let seq=[], input=[], accept=false, len=3;
+
+    function flash(i,ms){
+      tiles[i].classList.add("lit"); beep(392+i*110,.14,"triangle",.05);
+      later(()=>tiles[i].classList.remove("lit"),ms);
+    }
+    function playSeq(){
+      accept=false; status.textContent="watch — "+seq.length+" locks";
+      const gap=Math.max(340,620/ (1+ (len-3)*0.12))*slow();
+      seq.forEach((v,k)=>later(()=>flash(v,gap*.55),k*gap));
+      later(()=>{accept=true; status.textContent="your turn";},seq.length*gap+180);
+    }
+    function nextRound(){
+      if(len>8 || hearts<=0){ endGame&&endGame(false); return; }
+      seq=[]; input=[];
+      for(let i=0;i<len;i++) seq.push(Math.floor(Math.random()*4));
+      later(playSeq,500);
+    }
+    tiles.forEach((t,i)=>t.addEventListener("pointerdown",ev=>{
+      ev.preventDefault();
+      if(!accept||!running) return;
+      flash(i,140);
+      input.push(i);
+      const k=input.length-1;
+      if(input[k]!==seq[k]){
+        accept=false;
+        const r=t.getBoundingClientRect(), s=stage.getBoundingClientRect();
+        miss(r.left-s.left+16, r.top-s.top+16, -100);
+        status.textContent="wrong lock";
+        if(hearts>0) later(()=>{input=[]; playSeq();},800);
+        return;
+      }
+      if(input.length===seq.length){
+        accept=false;
+        const r=t.getBoundingClientRect(), s=stage.getBoundingClientRect();
+        hit(140*len, r.left-s.left+10, r.top-s.top+10);
+        status.textContent="open";
+        len++;
+        later(nextRound,750);
+      }
+    }));
+    nextRound();
+  }
+},
+{
+  key:"sweep", title:"Graveyard sweep", par:1800,
+  brief:s=>`${SIDES[s].foe} are climbing out of the graves. Hit them. Your own people are down there too — leave them alone.`,
+  rule:"Hit the enemy. Spare your own.",
+  taunt:{vamp:"Zombies all look the same. So do your mistakes.",zom:"Try not to eat the family."},
+  time:34,
+  run(){
+    const foe = S.side==="vamp" ? "🧟" : "🦇";
+    const own = S.side==="vamp" ? "🦇" : "🧟";
+    const civ = "👤";
+    const grid=document.createElement("div"); grid.className="grid9";
+    const holes=[];
+    for(let i=0;i<9;i++){
+      const h=document.createElement("button"); h.className="hole"; h.setAttribute("aria-label","grave "+(i+1));
+      const m=document.createElement("span"); m.className="mole";
+      h.appendChild(m); grid.appendChild(h); holes.push({h,m,busy:false,kind:null});
+    }
+    stage.appendChild(grid);
+    let up=900;
+    holes.forEach(o=>o.h.addEventListener("pointerdown",ev=>{
+      ev.preventDefault();
+      if(!o.busy||!running) return;
+      const r=o.h.getBoundingClientRect(), s=stage.getBoundingClientRect();
+      const x=r.left-s.left+r.width/2-14, y=r.top-s.top+8;
+      if(o.kind==="foe") hit(170,x,y); else miss(x,y,-120);
+      down(o);
+    }));
+    function down(o){ o.m.classList.remove("up"); o.busy=false; o.kind=null; }
+    function popUp(){
+      if(!running) return;
+      const free=holes.filter(o=>!o.busy);
+      if(free.length){
+        const o=pick(free);
+        const r=Math.random();
+        o.kind = r<0.62 ? "foe" : (r<0.82?"own":"civ");
+        o.m.textContent = o.kind==="foe"?foe:(o.kind==="own"?own:civ);
+        o.busy=true; o.m.classList.add("up");
+        later(()=>{ if(o.busy) down(o); }, up*slow());
+      }
+      up=Math.max(480,up*.972);
+      later(popUp, Math.max(260, up*.62)/slow());
+    }
+    later(popUp,400);
+  }
+},
+{
+  key:"turf", title:"Last stand", par:1700,
+  brief:s=>`Both sides meet on the bridge. Hammer the button and push the line into ${SIDES[s].foe} ground. They push back harder every second.`,
+  rule:"Tap fast. Push the line.",
+  taunt:{vamp:"No tricks left. Just teeth.",zom:"There were always more of you. Prove it."},
+  time:28,
+  run(){
+    let posn=50;
+    const tug=document.createElement("div"); tug.className="tug";
+    const fill=document.createElement("i");
+    tug.appendChild(fill);
+    const line=document.createElement("div"); line.className="tugline";
+    const lab=document.createElement("div"); lab.className="tuglabel";
+    lab.innerHTML='<span id="tl">50%</span><span id="tr">50%</span>';
+    const btn=document.createElement("button"); btn.className="smash"; btn.textContent="PUSH";
+    stage.appendChild(tug); stage.appendChild(line); stage.appendChild(lab); stage.appendChild(btn);
+    if(S.side==="zom"){ tug.style.background="#7d0f27"; fill.style.background="#4e6b12"; }
+    let taps=0, t0=performance.now();
+    const render=()=>{
+      fill.style.width=posn+"%";
+      lab.children[0].textContent=Math.round(posn)+"% you";
+      lab.children[1].textContent=Math.round(100-posn)+"% them";
+    };
+    btn.addEventListener("pointerdown",ev=>{
+      ev.preventDefault();
+      if(!running) return;
+      taps++; posn=clamp(posn+1.9,0,100); render(); beep(300+posn*4,.03,"square",.03);
+      if(posn>=100){ hit(900,null); running=false; later(()=>endGame&&endGame(false),400); }
+    });
+    const tick=()=>{
+      if(!running) return;
+      const el=(performance.now()-t0)/1000;
+      posn=clamp(posn-(0.55+el*0.045)/slow(),0,100); render();
+      if(posn<=0){ miss(null,null,0); if(hearts>0) posn=18; }
+      raf(tick);
+    };
+    every(()=>{ if(running) addScore(Math.round(posn*1.6),null,null); },1000);
+    render(); tick();
+  }
+}
+];
+
+/* ---------- night flow ---------- */
+function briefNight(){
+  const n=NIGHTS[S.night];
+  $("#b-eyebrow").textContent="Night "+(S.night+1)+" of 5";
+  $("#b-title").textContent=n.title;
+  $("#b-rule").textContent=n.brief(S.side);
+  $("#b-taunt").textContent=n.taunt[S.side];
+  $("#b-turf").textContent=Math.round(S.turf)+"%";
+  $("#b-hearts").textContent=startHearts();
+  $("#b-go").textContent = S.night===4 ? "Hold the bridge" : "Start the night";
+  show("brief");
+}
+
+let timerLeft=0, timerMax=0;
+function startNight(){
+  const n=NIGHTS[S.night];
+  clearLive(); stage.innerHTML="";
+  S.nightScore=0; streak=0;
+  hearts=startHearts(); mistakesFree=has("armor")?1:0;
+  drawHearts();
+  $("#p-score").textContent="0";
+  $("#p-night").textContent="Night "+(S.night+1)+" · "+n.title.toLowerCase();
+  $("#p-rule").textContent=n.rule;
+  show("play");
+  running=true;
+  endGame=(dead)=>{ if(!running) return; running=false; clearLive(); later(()=>finishNight(dead),450); };
+
+  if(n.time){
+    timerMax=timerLeft=n.time;
+    $("#p-bar").style.width="100%";
+    const t0=performance.now();
+    const tickBar=()=>{
+      if(!running) return;
+      timerLeft=timerMax-(performance.now()-t0)/1000;
+      $("#p-bar").style.width=clamp(timerLeft/timerMax*100,0,100)+"%";
+      if(timerLeft<=0){ endGame(false); return; }
+      raf(tickBar);
+    };
+    tickBar();
+  } else {
+    $("#p-bar").style.width="100%";
+  }
+  requestAnimationFrame(()=>n.run());
+}
+
+function finishNight(dead){
+  const n=NIGHTS[S.night];
+  const par=n.par;
+  const sc=Math.max(0,S.nightScore);
+  S.score+=sc;
+  let delta=clamp(Math.round((sc-par)/par*13),-11,15);
+  if(dead) delta-=3;
+  const before=S.turf;
+  S.turf=clamp(S.turf+delta,2,98);
+  S.log.push({night:S.night,sc,delta});
+
+  $("#r-eyebrow").textContent = dead ? "Night "+(S.night+1)+" — you went down" : "Night "+(S.night+1)+" over";
+  $("#r-title").textContent = dead ? "Dragged home" : (sc>=par*1.25?"A very good night":(sc>=par?"Held the line":"Thin pickings"));
+  $("#r-score").textContent=sc.toLocaleString();
+  $("#r-par").textContent=par.toLocaleString();
+
+  const yours = S.side==="vamp";
+  $("#r-fill").style.width=before+"%";
+  $("#r-fill").style.background = yours ? "#a01530" : "#7a9a1c";
+  $("#r-fill").parentElement.style.background = yours ? "#4e6b12" : "#7d0f27";
+  requestAnimationFrame(()=>later(()=>{$("#r-fill").style.width=S.turf+"%";},240));
+  $("#r-l").textContent=SIDES[S.side].name+" "+Math.round(S.turf)+"%";
+  $("#r-r").textContent=Math.round(100-S.turf)+"% "+SIDES[S.side].foe;
+  $("#r-note").textContent = delta>0
+    ? "You took "+delta+"% of the city tonight."
+    : (delta===0 ? "Nothing moved. The map looks the same at dawn."
+                 : "You lost "+Math.abs(delta)+"% of the city.");
+  $("#r-go").textContent = S.night>=4 ? "See how it ended" : "Take a gift";
+  (delta>0?sfx.win:sfx.lose)();
+  show("result");
+}
+
+function offerPerks(){
+  const box=$("#u-cards"); box.innerHTML="";
+  const pool=PERKS.filter(p=>!has(p.id));
+  const opts=[];
+  while(opts.length<Math.min(3,pool.length)){
+    const p=pick(pool); if(!opts.includes(p)) opts.push(p);
+  }
+  if(!opts.length){
+    const b=document.createElement("button"); b.className="go"; b.textContent="Nothing left to take — carry on";
+    b.onclick=()=>{S.night++;briefNight();}; box.appendChild(b); show("up"); return;
+  }
+  opts.forEach(p=>{
+    const c=document.createElement("button"); c.className="card";
+    c.innerHTML="<b></b><span></span>";
+    c.querySelector("b").textContent=p.name;
+    c.querySelector("span").textContent=p.desc;
+    c.onclick=()=>{ S.perks.push(p.id); beep(700,.1,"triangle",.05); S.night++; briefNight(); };
+    box.appendChild(c);
+  });
+  show("up");
+}
+
+function ending(){
+  const t=S.turf, me=SIDES[S.side], foe=me.foe;
+  let title,body;
+  if(t>=72){ title="The city belongs to you"; body="Every street, every rooftop, every sewer. "+foe+" are a rumour people tell to frighten children. You will be bored by Thursday."; }
+  else if(t>=55){ title="You won the war"; body="Not cleanly. There are pockets of "+foe+" in the docks and nobody wants to go down there. But the city answers to you now."; }
+  else if(t>=45){ title="A stalemate"; body="Five nights, and the map looks almost the same. Both sides go quiet and start counting again. The war just got longer."; }
+  else if(t>=28){ title="Losing ground"; body=foe+" hold the centre. You keep the edges, the tunnels, the places nobody wanted anyway. It is survivable. Barely."; }
+  else { title="You lost the city"; body=foe+" run the streets by dark and the humans have stopped noticing the difference. What is left of you goes underground and waits for a better century."; }
+  $("#e-title").textContent=title;
+  $("#e-body").textContent=body;
+  $("#e-turf").textContent=Math.round(t)+"%";
+  $("#e-score").textContent=S.score.toLocaleString();
+  (t>=55?sfx.win:sfx.lose)();
+  show("end");
+}
+
+/* ---------- wiring ---------- */
+document.querySelectorAll(".pickbtn").forEach(b=>{
+  b.onclick=()=>{ reset(b.dataset.side); setSideColors(); beep(520,.12,"triangle",.06); briefNight(); };
+});
+$("#b-go").onclick=startNight;
+$("#r-go").onclick=()=>{ if(S.night>=4) ending(); else offerPerks(); };
+$("#e-again").onclick=()=>{ const s=S.side; reset(s); setSideColors(); briefNight(); };
+$("#e-swap").onclick=()=>{ clearLive(); stage.innerHTML=""; show("title"); };
+
+document.addEventListener("contextmenu",e=>{ if(e.target.closest("#stage")) e.preventDefault(); });
+window.addEventListener("blur",()=>{ /* keep it simple: games keep running */ });
+})();
+</script>
+</body>
+</html>
