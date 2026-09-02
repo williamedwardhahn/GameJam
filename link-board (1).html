@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jam Board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --void:#191233;
+    --panel:#221A44;
+    --panel-2:#2B2155;
+    --edge:#3A2E6E;
+    --paper:#F1ECFF;
+    --dim:#9A8DD0;
+    --hot:#FF3D7F;
+    --amber:#FFC24B;
+    --r:10px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--void);
+    background-image:
+      radial-gradient(900px 500px at 50% -12%, rgba(255,61,127,.16), transparent 70%),
+      linear-gradient(var(--void),#140F2A);
+    background-attachment:fixed;
+    color:var(--paper);
+    font-family:"Archivo",system-ui,-apple-system,"Segoe UI",sans-serif;
+    font-size:16px;line-height:1.45;
+    -webkit-font-smoothing:antialiased;min-height:100vh;
+  }
+  .wrap{max-width:660px;margin:0 auto;padding:20px 18px 72px}
+  a{color:inherit}
+  button{font:inherit;color:inherit;cursor:pointer;background:none;border:none}
+  input{font:inherit}
+  :focus-visible{outline:2px solid var(--amber);outline-offset:2px;border-radius:4px}
+
+  /* ---------- masthead ---------- */
+  .top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:26px}
+  .mark{font-weight:800;letter-spacing:-.03em;font-size:21px;margin:0}
+  .mark span{color:var(--hot)}
+  .tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+  .roomtag{font-size:13px;color:var(--dim);margin-right:2px}
+  .roomtag b{font-weight:600;color:var(--paper)}
+  .mini{border:1px solid var(--edge);border-radius:99px;padding:6px 13px;font-size:13px;font-weight:600;color:var(--dim)}
+  .mini:hover{border-color:var(--dim);color:var(--paper)}
+
+  /* ---------- gate ---------- */
+  .gate{margin-top:11vh}
+  .gate h2{font-size:clamp(30px,7vw,44px);line-height:1.02;letter-spacing:-.035em;font-weight:800;margin:0 0 14px}
+  .gate p{color:var(--dim);max-width:46ch;margin:0 0 28px}
+  .gate .row{display:flex;gap:10px;flex-wrap:wrap}
+  .gate form{flex:1 1 240px;display:flex;gap:10px}
+  .field{background:var(--panel);border:1px solid var(--edge);border-radius:var(--r);padding:12px 14px;color:var(--paper);width:100%}
+  .field::placeholder{color:#7A6DB0}
+  .field:focus{border-color:var(--hot);outline:none}
+  .btn{background:var(--hot);color:#1A0A14;font-weight:700;letter-spacing:-.01em;padding:12px 20px;border-radius:var(--r);white-space:nowrap}
+  .btn:hover{filter:brightness(1.08)}
+  .btn:active{transform:translateY(1px)}
+  .btn.ghost{background:transparent;color:var(--paper);border:1px solid var(--edge);font-weight:600}
+  .btn.ghost:hover{border-color:var(--dim);filter:none}
+  .sep{color:#6B5EA6;font-size:13px;align-self:center;padding:0 2px}
+
+  /* ---------- compose ---------- */
+  .compose{background:var(--panel);border:1px solid var(--edge);border-radius:14px;padding:14px;margin-bottom:22px}
+  .compose .stack{display:flex;flex-direction:column;gap:9px}
+  .compose .split{display:flex;gap:9px}
+  .compose .split .field{flex:1}
+  .who{flex:0 0 34%;min-width:110px}
+  .hint{font-size:12.5px;color:#7A6DB0;margin:9px 2px 0}
+  .hint.bad{color:var(--hot)}
+
+  /* ---------- toolbar ---------- */
+  .bar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 2px 12px}
+  .tabs{display:flex;gap:2px;background:var(--panel);border:1px solid var(--edge);border-radius:99px;padding:3px}
+  .tab{padding:5px 14px;border-radius:99px;font-size:13.5px;font-weight:600;color:var(--dim)}
+  .tab[aria-selected="true"]{background:var(--panel-2);color:var(--paper)}
+  .tally{font-size:13px;color:var(--dim)}
+
+  /* ---------- board ---------- */
+  ol.board{list-style:none;margin:0;padding:0}
+  .entry{
+    position:relative;display:grid;grid-template-columns:34px 1fr auto auto;
+    align-items:center;gap:12px;padding:13px 6px;border-top:1px solid rgba(58,46,110,.65);
+  }
+  .entry:last-child{border-bottom:1px solid rgba(58,46,110,.65)}
+  .rank{font-weight:800;font-size:17px;color:#6B5EA6;text-align:right;font-variant-numeric:tabular-nums;letter-spacing:-.04em}
+  .entry.lead .rank{color:var(--amber);font-size:24px}
+  .entry.lead .title{font-size:19px}
+  .meat{min-width:0}
+  .title{display:block;font-weight:600;font-size:16.5px;letter-spacing:-.012em;text-decoration:none;overflow-wrap:anywhere}
+  .title:hover{text-decoration:underline;text-decoration-color:var(--hot);text-underline-offset:3px}
+  .meta{font-size:12.5px;color:var(--dim);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .meta i{font-style:normal;color:#7A6DB0}
+  .qrbtn{width:34px;height:38px;border:1px solid var(--edge);border-radius:var(--r);color:var(--dim);font-size:15px;line-height:1;display:grid;place-items:center}
+  .qrbtn:hover{border-color:var(--dim);color:var(--paper)}
+  .vote{
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+    width:52px;padding:6px 0;border:1px solid var(--edge);border-radius:var(--r);
+    background:var(--panel);transition:background .12s,border-color .12s,color .12s;
+  }
+  .vote:hover{border-color:var(--dim)}
+  .vote .n{font-weight:800;font-size:17px;font-variant-numeric:tabular-nums;letter-spacing:-.03em}
+  .vote .car{font-size:10px;line-height:1;color:var(--dim)}
+  .vote[aria-pressed="true"]{background:var(--hot);border-color:var(--hot);color:#1A0A14}
+  .vote[aria-pressed="true"] .car{color:#1A0A14;opacity:.7}
+  .bar-fill{display:none}
+  .bump{animation:bump .22s ease-out}
+  @keyframes bump{0%{transform:scale(1)}45%{transform:scale(1.16)}100%{transform:scale(1)}}
+  .fresh{animation:fresh 1.4s ease-out}
+  @keyframes fresh{0%{background:rgba(91,233,185,.16)}100%{background:transparent}}
+
+  .empty{text-align:center;padding:44px 10px;color:var(--dim)}
+  .empty b{display:block;color:var(--paper);font-weight:600;font-size:18px;margin-bottom:5px}
+
+  /* ---------- QR sheet ---------- */
+  .sheet{position:fixed;inset:0;z-index:20;display:grid;place-items:center;padding:22px;background:rgba(12,8,26,.86)}
+  .card{background:var(--panel);border:1px solid var(--edge);border-radius:18px;padding:22px;text-align:center;max-width:min(92vw,440px)}
+  .card .qrbox{background:#fff;border-radius:12px;padding:12px;display:inline-block;line-height:0}
+  .card .qrbox svg{width:min(64vmin,300px);height:auto;display:block}
+  .card h3{margin:16px 0 4px;font-size:20px;font-weight:800;letter-spacing:-.02em;overflow-wrap:anywhere}
+  .card p{margin:0;color:var(--dim);font-size:13.5px;overflow-wrap:anywhere}
+  .card .acts{display:flex;gap:9px;justify-content:center;margin-top:18px;flex-wrap:wrap}
+  .warn{margin-top:14px;color:var(--hot);font-size:12.5px;line-height:1.4}
+
+  /* ---------- present mode ---------- */
+  body.present .wrap{max-width:1180px;padding:26px 30px 30px}
+  body.present .compose,body.present .tabs,body.present .foot,body.present #copyLink,body.present .qrbtn{display:none}
+  body.present .mark{font-size:26px}
+  body.present .entry{grid-template-columns:clamp(44px,4vw,72px) 1fr auto;padding:clamp(10px,1.6vh,22px) 12px;overflow:hidden}
+  body.present .bar-fill{
+    display:block;position:absolute;left:0;top:0;bottom:0;z-index:0;
+    background:linear-gradient(90deg,rgba(255,61,127,.24),rgba(255,61,127,.04));
+    transition:width .5s ease-out;
+  }
+  body.present .entry > *{position:relative;z-index:1}
+  body.present .rank{font-size:clamp(20px,2.6vw,34px)}
+  body.present .entry.lead .rank{font-size:clamp(28px,3.6vw,48px)}
+  body.present .title{font-size:clamp(18px,2.3vw,30px);pointer-events:none}
+  body.present .entry.lead .title{font-size:clamp(22px,3vw,38px);font-weight:800}
+  body.present .meta{font-size:clamp(12px,1.1vw,15px)}
+  body.present .vote{width:auto;min-width:clamp(58px,6vw,100px);border:none;background:none;pointer-events:none}
+  body.present .vote .n{font-size:clamp(24px,3.2vw,46px);color:var(--amber)}
+  body.present .vote .car{display:none}
+  body.present .vote[aria-pressed="true"]{background:none;color:inherit}
+  body.present .tally{font-size:15px}
+  .stage-qr{display:none}
+  body.present .stage-qr{
+    display:flex;align-items:center;gap:14px;position:fixed;right:24px;bottom:24px;z-index:5;
+    background:var(--panel);border:1px solid var(--edge);border-radius:16px;padding:12px 18px 12px 12px;
+  }
+  .stage-qr .qrbox{background:#fff;border-radius:9px;padding:7px;line-height:0}
+  .stage-qr .qrbox svg{width:122px;height:auto;display:block}
+  .stage-qr b{display:block;font-size:15px;font-weight:700;letter-spacing:-.01em}
+  .stage-qr span{font-size:12.5px;color:var(--dim)}
+
+  /* ---------- status / footer ---------- */
+  .flash{
+    position:fixed;left:50%;transform:translateX(-50%);bottom:18px;z-index:30;
+    background:var(--panel-2);border:1px solid var(--edge);border-radius:99px;
+    padding:9px 18px;font-size:13.5px;box-shadow:0 8px 24px rgba(0,0,0,.45);
+    opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;
+  }
+  .flash.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
+  .flash.err{border-color:var(--hot);color:#FFD3E2}
+  .foot{margin-top:34px;padding-top:16px;border-top:1px solid rgba(58,46,110,.55);
+    font-size:12.5px;color:#7A6DB0;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .danger{color:#7A6DB0;text-decoration:underline;text-underline-offset:3px}
+  .danger:hover{color:var(--hot)}
+  .hidden{display:none !important}
+
+  @media (max-width:460px){
+    .compose .split{flex-wrap:wrap}
+    .who{flex:1 1 100%}
+    .compose .split .btn{flex:1 1 100%}
+    .entry{grid-template-columns:24px 1fr auto auto;gap:9px}
+    .roomtag{display:none}
+  }
+  @media (prefers-reduced-motion:reduce){*{animation:none !important;transition:none !important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <h1 class="mark">jam<span>board</span></h1>
+    <div class="tools hidden" id="tools">
+      <span class="roomtag">room <b id="roomName"></b></span>
+      <button class="mini" id="qrRoom">Join QR</button>
+      <button class="mini" id="copyLink">Copy link</button>
+      <button class="mini" id="present">Present</button>
+    </div>
+  </header>
+
+  <section class="gate" id="gate">
+    <h2>Post your build.<br>Let the room decide.</h2>
+    <p>One board for the jam. Put the join QR on the projector, everyone scans, drops a link, and votes. The leaderboard updates live.</p>
+    <div class="row">
+      <button class="btn" id="makeRoom">Start a board</button>
+      <span class="sep">or</span>
+      <form id="joinForm">
+        <input class="field" id="joinCode" placeholder="room code" autocomplete="off" spellcheck="false">
+        <button class="btn ghost" type="submit">Join</button>
+      </form>
+    </div>
+    <p class="hint">Boards clear themselves after 24 hours.</p>
+  </section>
+
+  <main id="app" class="hidden">
+    <form class="compose" id="postForm" autocomplete="off">
+      <div class="stack">
+        <input class="field" id="fUrl" placeholder="https://your-game.itch.io/..." inputmode="url" spellcheck="false" required>
+        <input class="field" id="fTitle" placeholder="Name it — “Rat Physics Deluxe”" maxlength="90">
+        <div class="split">
+          <input class="field who" id="fWho" placeholder="your name" maxlength="24">
+          <button class="btn" type="submit" id="postBtn">Post it</button>
+        </div>
+      </div>
+      <p class="hint" id="formHint"></p>
+    </form>
+
+    <div class="bar">
+      <div class="tabs" role="tablist" aria-label="Sort entries">
+        <button class="tab" role="tab" id="tabTop" aria-selected="true">Top</button>
+        <button class="tab" role="tab" id="tabNew" aria-selected="false">Newest</button>
+      </div>
+      <span class="tally" id="tally"></span>
+    </div>
+
+    <ol class="board" id="board"></ol>
+
+    <div class="empty hidden" id="empty">
+      <b>Nothing on the board yet.</b>
+      Paste the first link — it goes live for everyone in the room.
+    </div>
+
+    <div class="foot">
+      <span>Anyone with the link can post and vote. Board expires in 24h.</span>
+      <button class="danger" id="wipe">Clear board</button>
+    </div>
+  </main>
+</div>
+
+<div class="stage-qr" id="stageQR">
+  <div class="qrbox" id="stageQRBox"></div>
+  <div><b>Scan to add yours</b><span>and vote from your phone</span></div>
+</div>
+
+<div class="flash" id="flash" role="status" aria-live="polite"></div>
+
+<script>
+/* ---------------------------------------------------------------
+   QR encoder — byte mode, error correction level M, versions 1-10.
+   Output verified module-for-module against a reference encoder.
+   --------------------------------------------------------------- */
+function qrMatrix(text) {
+  var RS = [ // [ecPerBlock, group1Blocks, group1Data, group2Blocks, group2Data]
+    [10,1,16,0,0],[16,1,28,0,0],[26,1,44,0,0],[18,2,32,0,0],[24,2,43,0,0],
+    [16,4,27,0,0],[18,4,31,0,0],[22,2,38,2,39],[22,3,36,2,37],[26,4,43,1,44]];
+  var ALIGN = [[],[6,18],[6,22],[6,26],[6,30],[6,34],[6,22,38],[6,24,42],[6,26,46],[6,28,50]];
+
+  var bytes = [], i, j, r, c;
+  for (i = 0; i < text.length; i++) {
+    var ch = text.charCodeAt(i);
+    if (ch < 0x80) bytes.push(ch);
+    else if (ch < 0x800) bytes.push(0xC0 | (ch >> 6), 0x80 | (ch & 63));
+    else if (ch >= 0xD800 && ch < 0xDC00) {
+      var cp = 0x10000 + ((ch - 0xD800) << 10) + (text.charCodeAt(++i) - 0xDC00);
+      bytes.push(0xF0 | (cp >> 18), 0x80 | ((cp >> 12) & 63), 0x80 | ((cp >> 6) & 63), 0x80 | (cp & 63));
+    } else bytes.push(0xE0 | (ch >> 12), 0x80 | ((ch >> 6) & 63), 0x80 | (ch & 63));
+  }
+
+  var version = 0, spec, dataCw;
+  for (var v = 1; v <= 10; v++) {
+    var s = RS[v-1], dw = s[1]*s[2] + s[3]*s[4];
+    if (bytes.length + 2 + (v >= 10 ? 1 : 0) <= dw) { version = v; spec = s; dataCw = dw; break; }
+  }
+  if (!version) throw new Error("too long for a version 10 QR code");
+
+  var bits = [];
+  function put(val, len) { for (var k = len - 1; k >= 0; k--) bits.push((val >> k) & 1); }
+  put(4, 4);
+  put(bytes.length, version >= 10 ? 16 : 8);
+  for (i = 0; i < bytes.length; i++) put(bytes[i], 8);
+  for (i = 0; i < 4 && bits.length < dataCw * 8; i++) bits.push(0);
+  while (bits.length % 8) bits.push(0);
+  var data = [];
+  for (i = 0; i < bits.length; i += 8) {
+    var b = 0; for (j = 0; j < 8; j++) b = (b << 1) | bits[i+j];
+    data.push(b);
+  }
+  var pad = [0xEC, 0x11], p = 0;
+  while (data.length < dataCw) data.push(pad[p++ % 2]);
+
+  var EXP = new Array(512), LOG = new Array(256);
+  for (i = 0, j = 1; i < 255; i++) { EXP[i] = j; LOG[j] = i; j <<= 1; if (j & 0x100) j ^= 0x11D; }
+  for (i = 255; i < 512; i++) EXP[i] = EXP[i-255];
+  function mul(a, b) { return (a === 0 || b === 0) ? 0 : EXP[LOG[a] + LOG[b]]; }
+  function ecc(block, n) {
+    var g = [1], k;
+    for (k = 0; k < n; k++) {
+      var ng = new Array(g.length + 1).fill(0);
+      for (j = 0; j < g.length; j++) { ng[j] ^= g[j]; ng[j+1] ^= mul(g[j], EXP[k]); }
+      g = ng;
+    }
+    var rem = block.concat(new Array(n).fill(0));
+    for (k = 0; k < block.length; k++) {
+      var f = rem[k]; if (f === 0) continue;
+      for (j = 0; j < g.length; j++) rem[k+j] ^= mul(g[j], f);
+    }
+    return rem.slice(block.length);
+  }
+
+  var blocks = [], eccs = [], off = 0, counts = [];
+  for (i = 0; i < spec[1]; i++) counts.push(spec[2]);
+  for (i = 0; i < spec[3]; i++) counts.push(spec[4]);
+  for (i = 0; i < counts.length; i++) {
+    var blk = data.slice(off, off + counts[i]); off += counts[i];
+    blocks.push(blk); eccs.push(ecc(blk, spec[0]));
+  }
+  var out = [], maxD = Math.max.apply(null, counts);
+  for (i = 0; i < maxD; i++) for (j = 0; j < blocks.length; j++) if (i < blocks[j].length) out.push(blocks[j][i]);
+  for (i = 0; i < spec[0]; i++) for (j = 0; j < eccs.length; j++) out.push(eccs[j][i]);
+
+  var size = version * 4 + 17, m = [], fn = [];
+  for (r = 0; r < size; r++) { m.push(new Array(size).fill(0)); fn.push(new Array(size).fill(0)); }
+  function set(rr, cc, val) { m[rr][cc] = val ? 1 : 0; fn[rr][cc] = 1; }
+
+  function finder(rr, cc) {
+    for (var dr = -1; dr <= 7; dr++) for (var dc = -1; dc <= 7; dc++) {
+      var a = rr + dr, b2 = cc + dc;
+      if (a < 0 || a >= size || b2 < 0 || b2 >= size) continue;
+      var d = Math.max(Math.abs(dr - 3), Math.abs(dc - 3));
+      set(a, b2, d !== 2 && d <= 3 ? 1 : 0);
+    }
+  }
+  finder(0, 0); finder(0, size - 7); finder(size - 7, 0);
+
+  var ac = ALIGN[version - 1];
+  for (i = 0; i < ac.length; i++) for (j = 0; j < ac.length; j++) {
+    r = ac[i]; c = ac[j];
+    if ((r <= 7 && c <= 7) || (r <= 7 && c >= size - 8) || (r >= size - 8 && c <= 7)) continue;
+    for (var dr2 = -2; dr2 <= 2; dr2++) for (var dc2 = -2; dc2 <= 2; dc2++)
+      set(r + dr2, c + dc2, Math.max(Math.abs(dr2), Math.abs(dc2)) !== 1);
+  }
+
+  for (i = 8; i < size - 8; i++) { set(6, i, i % 2 === 0); set(i, 6, i % 2 === 0); }
+  set(size - 8, 8, 1);
+  for (i = 0; i < 9; i++) { if (!fn[8][i]) set(8, i, 0); if (!fn[i][8]) set(i, 8, 0); }
+  for (i = 0; i < 8; i++) { set(8, size - 1 - i, 0); set(size - 1 - i, 8, 0); }
+
+  var vcells = [];
+  if (version >= 7) {
+    var d3 = version;
+    for (i = 0; i < 12; i++) d3 = (d3 << 1) ^ ((d3 >> 11) * 0x1F25);
+    var vinfo = (version << 12) | d3;
+    for (i = 0; i < 18; i++) {
+      var vbit = (vinfo >> i) & 1, a1 = Math.floor(i / 3), b1 = size - 11 + (i % 3);
+      set(a1, b1, 0); set(b1, a1, 0);
+      vcells.push([a1, b1, vbit], [b1, a1, vbit]);
+    }
+  }
+
+  var idx = 0, up = true;
+  for (var col = size - 1; col > 0; col -= 2) {
+    if (col === 6) col = 5;
+    for (var k2 = 0; k2 < size; k2++) {
+      var row = up ? size - 1 - k2 : k2;
+      for (var t = 0; t < 2; t++) {
+        var cc2 = col - t;
+        if (fn[row][cc2]) continue;
+        m[row][cc2] = idx < out.length * 8 ? (out[idx >> 3] >> (7 - (idx & 7))) & 1 : 0;
+        idx++;
+      }
+    }
+    up = !up;
+  }
+
+  function maskFn(k, rr, cc) {
+    switch (k) {
+      case 0: return (rr + cc) % 2 === 0;
+      case 1: return rr % 2 === 0;
+      case 2: return cc % 3 === 0;
+      case 3: return (rr + cc) % 3 === 0;
+      case 4: return (Math.floor(rr / 2) + Math.floor(cc / 3)) % 2 === 0;
+      case 5: return ((rr * cc) % 2) + ((rr * cc) % 3) === 0;
+      case 6: return (((rr * cc) % 2) + ((rr * cc) % 3)) % 2 === 0;
+      default: return (((rr + cc) % 2) + ((rr * cc) % 3)) % 2 === 0;
+    }
+  }
+  function applyFormat(g, mask) {
+    var dd = mask;                                   // EC level M = 00
+    for (var q = 0; q < 10; q++) dd = (dd << 1) ^ ((dd >> 9) * 0x537);
+    var f = ((mask << 10) | dd) ^ 0x5412;
+    for (var q2 = 0; q2 < 15; q2++) {
+      var bt = (f >> q2) & 1;
+      g[q2 < 6 ? q2 : (q2 < 8 ? q2 + 1 : size - 15 + q2)][8] = bt;
+      g[8][q2 < 8 ? size - 1 - q2 : (q2 === 8 ? 7 : 15 - q2 - 1)] = bt;
+    }
+    g[size - 8][8] = 1;
+  }
+  function penalty(g) {
+    var score = 0, dark = 0, a, b2;
+    for (a = 0; a < size; a++) for (b2 = 0; b2 < size; b2++) if (g[a][b2]) dark++;
+    function runs(get) {
+      var s2 = 0;
+      for (a = 0; a < size; a++) {
+        var run = 1;
+        for (b2 = 1; b2 < size; b2++) {
+          if (get(a, b2) === get(a, b2 - 1)) run++;
+          else { if (run >= 5) s2 += run - 2; run = 1; }
+        }
+        if (run >= 5) s2 += run - 2;
+      }
+      return s2;
+    }
+    score += runs(function (x, y) { return g[x][y]; });
+    score += runs(function (x, y) { return g[y][x]; });
+    for (a = 0; a < size - 1; a++) for (b2 = 0; b2 < size - 1; b2++) {
+      var vv = g[a][b2];
+      if (vv === g[a][b2+1] && vv === g[a+1][b2] && vv === g[a+1][b2+1]) score += 3;
+    }
+    var p1 = [1,0,1,1,1,0,1,0,0,0,0], p2 = [0,0,0,0,1,0,1,1,1,0,1];
+    function find(get) {
+      var s2 = 0;
+      for (a = 0; a < size; a++) for (b2 = 0; b2 + 11 <= size; b2++) {
+        var ok1 = true, ok2 = true;
+        for (var q = 0; q < 11; q++) {
+          var val = get(a, b2 + q);
+          if (val !== p1[q]) ok1 = false;
+          if (val !== p2[q]) ok2 = false;
+        }
+        if (ok1) s2 += 40;
+        if (ok2) s2 += 40;
+      }
+      return s2;
+    }
+    score += find(function (x, y) { return g[x][y]; });
+    score += find(function (x, y) { return g[y][x]; });
+    score += Math.floor(Math.abs(dark * 100 / (size * size) - 50) / 5) * 10;
+    return score;
+  }
+
+  var best = null, bestMask = 0, bestScore = Infinity;
+  for (var mask = 0; mask < 8; mask++) {
+    var g = m.map(function (row2) { return row2.slice(); });
+    for (r = 0; r < size; r++) for (c = 0; c < size; c++)
+      if (!fn[r][c] && maskFn(mask, r, c)) g[r][c] ^= 1;
+    var sc = penalty(g);
+    if (sc < bestScore) { bestScore = sc; best = g; bestMask = mask; }
+  }
+  applyFormat(best, bestMask);
+  for (i = 0; i < vcells.length; i++) best[vcells[i][0]][vcells[i][1]] = vcells[i][2];
+  return { size: size, modules: best };
+}
+
+function qrSVG(text) {
+  var q = qrMatrix(text), n = q.size, quiet = 4, dim = n + quiet * 2, path = "";
+  for (var r = 0; r < n; r++) {
+    var c = 0;
+    while (c < n) {
+      if (q.modules[r][c]) {
+        var start = c;
+        while (c < n && q.modules[r][c]) c++;
+        path += "M" + (start + quiet) + " " + (r + quiet) + "h" + (c - start) + "v1h-" + (c - start) + "z";
+      } else c++;
+    }
+  }
+  return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + dim + ' ' + dim +
+         '" shape-rendering="crispEdges" role="img" aria-label="QR code">' +
+         '<rect width="' + dim + '" height="' + dim + '" fill="#ffffff"/>' +
+         '<path d="' + path + '" fill="#160F2E"/></svg>';
+}
+
+/* ---------------------------------------------------------------
+   Board — state lives in statevec.com
+   --------------------------------------------------------------- */
+(() => {
+  "use strict";
+  const API = "https://statevec.com", TTL = 86400, POLL = 5000;
+  const $ = (id) => document.getElementById(id);
+
+  let room = "", linksKey = "", votesKey = "", linksHash = "", votesHash = "";
+  let links = [], votes = {}, mine = new Set(), sort = "top";
+  let seen = new Set(), firstLoad = true, timer = null, backoff = 0, presenting = false;
+
+  async function sha256(text){
+    const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+    return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2,"0")).join("");
+  }
+  async function call(method, body){
+    const res = await fetch(API + "/v", {method, headers:{"Content-Type":"application/json"}, body: JSON.stringify(body)});
+    if (res.status === 429) throw Object.assign(new Error("rate"), {rate:true});
+    if (!res.ok) throw new Error(method + " " + res.status);
+    return res.json();
+  }
+  async function readBoth(){
+    const res = await fetch(API + "/v/batch", {
+      method:"POST", headers:{"Content-Type":"application/json"}, cache:"no-store",
+      body: JSON.stringify({hashes:[linksHash, votesHash]})
+    });
+    if (res.status === 429) throw Object.assign(new Error("rate"), {rate:true});
+    if (!res.ok) throw new Error("read " + res.status);
+    const r = (await res.json()).results || [];
+    return {
+      links: Array.isArray(r[0] && r[0].val) ? r[0].val : [],
+      votes: (r[1] && r[1].val && typeof r[1].val === "object") ? r[1].val : {}
+    };
+  }
+  async function pushLink(item){
+    try {
+      const d = await call("PATCH", {key:linksKey, op:"append", val:item, max:300, ttl:TTL});
+      if (Array.isArray(d.val)) return d.val;
+    } catch (e) { if (e.rate) throw e; }
+    const next = (await readBoth()).links.concat([item]);
+    await call("PUT", {key:linksKey, val:next, ttl:TTL});
+    return next;
+  }
+  async function bumpVote(id, amount){
+    try {
+      const d = await call("PATCH", {key:votesKey, op:"incr", field:id, amount, ttl:TTL});
+      if (d.val && typeof d.val === "object") return d.val;
+    } catch (e) { if (e.rate) throw e; }
+    const cur = (await readBoth()).votes;
+    cur[id] = Math.max(0, (cur[id] || 0) + amount);
+    await call("PUT", {key:votesKey, val:cur, ttl:TTL});
+    return cur;
+  }
+
+  const WORDS = ["pixel","comet","tofu","hydra","banjo","moth","cobalt","ferret","onyx","quartz",
+                 "static","velvet","zephyr","glitch","cinder","otter","prism","husk"];
+  function newCode(){
+    const r = crypto.getRandomValues(new Uint32Array(3));
+    return WORDS[r[0] % WORDS.length] + "-" + WORDS[r[1] % WORDS.length] + "-" + (r[2] % 1296).toString(36).padStart(2,"0");
+  }
+  const inviteURL = () => location.origin + location.pathname + "#room=" + encodeURIComponent(room);
+
+  async function enter(code){
+    room = code.trim().toLowerCase().replace(/\s+/g,"-");
+    if (!room) return;
+    linksKey = "jamboard.v1:" + room + ":links";
+    votesKey = "jamboard.v1:" + room + ":votes";
+    [linksHash, votesHash] = await Promise.all([sha256(linksKey), sha256(votesKey)]);
+    try { mine = new Set(JSON.parse(localStorage.getItem("jb:v:" + room) || "[]")); } catch(_) {}
+    $("fWho").value = localStorage.getItem("jb:who") || "";
+    location.hash = "room=" + encodeURIComponent(room);
+    $("roomName").textContent = room;
+    $("tools").classList.remove("hidden");
+    $("gate").classList.add("hidden");
+    $("app").classList.remove("hidden");
+    document.title = room + " · Jam Board";
+    $("stageQRBox").innerHTML = qrSVG(inviteURL());
+    $("fUrl").focus();
+    refresh();
+  }
+
+  function schedule(){ clearTimeout(timer); timer = setTimeout(refresh, POLL + backoff); }
+  async function refresh(){
+    if (document.hidden) { schedule(); return; }
+    try {
+      const d = await readBoth();
+      links = d.links; votes = d.votes; backoff = 0;
+      render();
+    } catch (e) {
+      if (e.rate) { backoff = 20000; flash("statevec is rate-limiting — slowing down", true); }
+    }
+    schedule();
+  }
+
+  const scoreOf = (l) => votes[l.id] || 0;
+  function hostOf(url){ try { return new URL(url).hostname.replace(/^www\./,""); } catch(_) { return "link"; } }
+  function ago(ts){
+    const s = Math.max(0, Math.floor(Date.now()/1000 - ts));
+    if (s < 60) return "just now";
+    if (s < 3600) return Math.floor(s/60) + "m ago";
+    return Math.floor(s/3600) + "h ago";
+  }
+
+  function render(){
+    const ranked = presenting || sort === "top";
+    const list = links.slice();
+    list.sort(ranked ? (a,b) => scoreOf(b) - scoreOf(a) || a.ts - b.ts
+                     : (a,b) => b.ts - a.ts);
+    const shown = presenting ? list.slice(0, 10) : list;
+    const top = Math.max(1, ...list.map(scoreOf));
+
+    const ol = $("board");
+    ol.textContent = "";
+    $("empty").classList.toggle("hidden", list.length > 0);
+
+    const total = list.reduce((n,l) => n + scoreOf(l), 0);
+    $("tally").textContent = list.length
+      ? list.length + (list.length === 1 ? " entry · " : " entries · ") + total + (total === 1 ? " vote" : " votes")
+      : "";
+
+    shown.forEach((l, i) => {
+      const li = document.createElement("li");
+      li.className = "entry";
+      if (ranked && i === 0 && scoreOf(l) > 0) li.classList.add("lead");
+      if (!firstLoad && !seen.has(l.id)) li.classList.add("fresh");
+      seen.add(l.id);
+
+      const fill = document.createElement("div");
+      fill.className = "bar-fill";
+      fill.style.width = (scoreOf(l) / top * 100) + "%";
+      li.appendChild(fill);
+
+      const rank = document.createElement("div");
+      rank.className = "rank";
+      rank.textContent = ranked ? String(i + 1) : "·";
+      li.appendChild(rank);
+
+      const meat = document.createElement("div");
+      meat.className = "meat";
+      const a = document.createElement("a");
+      a.className = "title"; a.href = l.url; a.target = "_blank"; a.rel = "noopener noreferrer";
+      a.textContent = l.title;
+      meat.appendChild(a);
+      const meta = document.createElement("div");
+      meta.className = "meta";
+      meta.appendChild(document.createTextNode(hostOf(l.url)));
+      const tail = document.createElement("i");
+      tail.textContent = " · " + (l.by || "anon") + " · " + ago(l.ts);
+      meta.appendChild(tail);
+      meat.appendChild(meta);
+      li.appendChild(meat);
+
+      const qb = document.createElement("button");
+      qb.className = "qrbtn";
+      qb.textContent = "▣";
+      qb.title = "QR code for this link";
+      qb.setAttribute("aria-label", "Show QR code for " + l.title);
+      qb.addEventListener("click", () => showQR(l.url, l.title, "Scan to play it on your phone."));
+      li.appendChild(qb);
+
+      const vb = document.createElement("button");
+      vb.className = "vote";
+      vb.setAttribute("aria-pressed", mine.has(l.id) ? "true" : "false");
+      vb.setAttribute("aria-label", "Vote for " + l.title);
+      const car = document.createElement("span"); car.className = "car"; car.textContent = "▲";
+      const n = document.createElement("span"); n.className = "n"; n.textContent = scoreOf(l);
+      vb.append(car, n);
+      vb.addEventListener("click", () => vote(l.id, vb, n));
+      li.appendChild(vb);
+
+      ol.appendChild(li);
+    });
+    firstLoad = false;
+  }
+
+  let sheet = null;
+  function closeSheet(){ if (sheet) { sheet.remove(); sheet = null; } }
+  function showQR(url, heading, caption, extra){
+    closeSheet();
+    sheet = document.createElement("div");
+    sheet.className = "sheet";
+    const card = document.createElement("div");
+    card.className = "card";
+    const box = document.createElement("div");
+    box.className = "qrbox";
+    try { box.innerHTML = qrSVG(url); }
+    catch(_) { box.remove(); }
+    card.appendChild(box);
+    const h = document.createElement("h3"); h.textContent = heading; card.appendChild(h);
+    const p = document.createElement("p"); p.textContent = caption; card.appendChild(p);
+    if (extra) { const w = document.createElement("p"); w.className = "warn"; w.textContent = extra; card.appendChild(w); }
+    const acts = document.createElement("div");
+    acts.className = "acts";
+    const copy = document.createElement("button");
+    copy.className = "btn ghost"; copy.textContent = "Copy link";
+    copy.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      try { await navigator.clipboard.writeText(url); flash("Link copied"); } catch(_) { prompt("Copy this:", url); }
+    });
+    const done = document.createElement("button");
+    done.className = "btn"; done.textContent = "Done";
+    acts.append(copy, done);
+    card.appendChild(acts);
+    card.addEventListener("click", (e) => e.stopPropagation());
+    sheet.appendChild(card);
+    sheet.addEventListener("click", closeSheet);
+    document.body.appendChild(sheet);
+    done.focus();
+  }
+
+  let busy = false;
+  async function vote(id, btn, numEl){
+    if (busy || presenting) return;
+    busy = true;
+    const had = mine.has(id), amount = had ? -1 : 1;
+    if (had) mine.delete(id); else mine.add(id);
+    votes[id] = Math.max(0, (votes[id] || 0) + amount);
+    btn.setAttribute("aria-pressed", had ? "false" : "true");
+    numEl.textContent = votes[id];
+    numEl.classList.remove("bump"); void numEl.offsetWidth; numEl.classList.add("bump");
+    localStorage.setItem("jb:v:" + room, JSON.stringify([...mine]));
+    try { votes = await bumpVote(id, amount); render(); }
+    catch (e) {
+      if (had) mine.add(id); else mine.delete(id);
+      localStorage.setItem("jb:v:" + room, JSON.stringify([...mine]));
+      flash(e.rate ? "Too many requests — try again in a moment" : "Vote didn’t save", true);
+      refresh();
+    } finally { busy = false; }
+  }
+
+  function tidyUrl(raw){
+    let v = raw.trim();
+    if (!v) return null;
+    if (!/^https?:\/\//i.test(v)) v = "https://" + v;
+    try {
+      const u = new URL(v);
+      if (u.protocol !== "http:" && u.protocol !== "https:") return null;
+      if (!u.hostname.includes(".")) return null;
+      return u.href;
+    } catch(_) { return null; }
+  }
+
+  $("postForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const hint = $("formHint");
+    hint.className = "hint";
+    const url = tidyUrl($("fUrl").value);
+    if (!url) { hint.textContent = "That doesn’t look like a link — try itch.io/your-game"; hint.className = "hint bad"; return; }
+    if (url.length > 200) { hint.textContent = "That link is too long to turn into a QR code. Shorten it and try again."; hint.className = "hint bad"; return; }
+    if (links.some(l => l.url === url)) { hint.textContent = "Already on the board — go vote for it instead."; hint.className = "hint bad"; return; }
+
+    const by = $("fWho").value.trim().slice(0,24);
+    const title = ($("fTitle").value.trim() || hostOf(url) + " submission").slice(0,90);
+    if (by) localStorage.setItem("jb:who", by);
+    const item = { id: Date.now().toString(36) + Math.random().toString(36).slice(2,7), url, title, by, ts: Math.floor(Date.now()/1000) };
+
+    $("postBtn").disabled = true; $("postBtn").textContent = "Posting…";
+    try {
+      links = await pushLink(item);
+      seen.add(item.id);
+      $("fUrl").value = ""; $("fTitle").value = ""; hint.textContent = "";
+      render(); flash("Posted"); $("fUrl").focus();
+    } catch (err) {
+      hint.textContent = err.rate ? "Rate limited — wait a few seconds and post again"
+                                  : "Couldn’t reach statevec. Check your connection and retry.";
+      hint.className = "hint bad";
+    } finally { $("postBtn").disabled = false; $("postBtn").textContent = "Post it"; }
+  });
+
+  $("makeRoom").addEventListener("click", () => enter(newCode()));
+  $("joinForm").addEventListener("submit", (e) => { e.preventDefault(); enter($("joinCode").value); });
+  $("tabTop").addEventListener("click", () => setSort("top"));
+  $("tabNew").addEventListener("click", () => setSort("new"));
+  function setSort(s){
+    sort = s;
+    $("tabTop").setAttribute("aria-selected", s === "top");
+    $("tabNew").setAttribute("aria-selected", s === "new");
+    render();
+  }
+
+  $("qrRoom").addEventListener("click", () => {
+    showQR(inviteURL(), room, "Scan to join the board, post a link, and vote.",
+      location.protocol === "file:"
+        ? "This page is open from a local file, so the QR points somewhere only this device can reach. Put the file on a URL and everyone can scan it."
+        : "");
+  });
+  $("copyLink").addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText(inviteURL()); flash("Invite link copied"); }
+    catch(_) { prompt("Share this link:", inviteURL()); }
+  });
+
+  $("present").addEventListener("click", () => setPresent(!presenting));
+  function setPresent(on){
+    presenting = on;
+    document.body.classList.toggle("present", on);
+    $("present").textContent = on ? "Exit" : "Present";
+    render();
+    if (on && document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(() => {});
+    else if (!on && document.fullscreenElement) document.exitFullscreen().catch(() => {});
+  }
+  document.addEventListener("fullscreenchange", () => {
+    if (!document.fullscreenElement && presenting) setPresent(false);
+  });
+
+  $("wipe").addEventListener("click", async () => {
+    if (!confirm("Delete every entry and vote on “" + room + "”? This can’t be undone.")) return;
+    try {
+      await call("DELETE", {key:linksKey});
+      await call("DELETE", {key:votesKey});
+      links = []; votes = {}; mine.clear(); seen.clear();
+      localStorage.removeItem("jb:v:" + room);
+      render(); flash("Board cleared");
+    } catch(_) { flash("Couldn’t clear the board", true); }
+  });
+
+  let flashTimer = null;
+  function flash(msg, bad){
+    const el = $("flash");
+    el.textContent = msg;
+    el.className = "flash show" + (bad ? " err" : "");
+    clearTimeout(flashTimer);
+    flashTimer = setTimeout(() => { el.className = "flash" + (bad ? " err" : ""); }, 2600);
+  }
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape") return;
+    if (sheet) closeSheet();
+    else if (presenting) setPresent(false);
+  });
+  document.addEventListener("visibilitychange", () => { if (!document.hidden && room) refresh(); });
+  window.addEventListener("hashchange", () => {
+    const m = location.hash.match(/room=([^&]+)/);
+    if (m && decodeURIComponent(m[1]) !== room) enter(decodeURIComponent(m[1]));
+  });
+
+  const m0 = location.hash.match(/room=([^&]+)/);
+  if (m0) enter(decodeURIComponent(m0[1]));
+})();
+</script>
+</body>
+</html>
