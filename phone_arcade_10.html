@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>Pocket Arcade 10</title>
+<style>
+  :root{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color-scheme:dark}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#0b1020;color:#fff;touch-action:none}
+  button{font:inherit}
+  #app{width:100%;height:100%;display:flex;flex-direction:column}
+  #top{height:56px;display:flex;align-items:center;gap:8px;padding:8px;background:#10182c;border-bottom:1px solid #263454;z-index:3}
+  #top button{border:0;border-radius:10px;padding:9px 12px;background:#223257;color:#fff;font-weight:700}
+  #title{font-weight:800;flex:1;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #hud{font-size:13px;color:#bdcae9;min-width:78px;text-align:right}
+  #screen{position:relative;flex:1;min-height:0}
+  canvas{display:block;width:100%;height:100%;background:linear-gradient(#111a30,#080c17)}
+  #menu{position:absolute;inset:0;overflow:auto;padding:18px 14px 40px;background:linear-gradient(180deg,#0b1020,#121936)}
+  .hero{margin:4px 4px 16px}
+  .hero h1{margin:0;font-size:28px}.hero p{color:#aeb9d6;margin:6px 0 0}
+  .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .game-card{min-height:122px;text-align:left;border:1px solid #2b3a61;background:#151f38;color:#fff;border-radius:16px;padding:13px;box-shadow:0 8px 25px #0004}
+  .game-card b{display:block;font-size:16px;margin-bottom:5px}.game-card small{display:block;color:#9eacd0;line-height:1.25}.game-card span{display:block;margin-top:8px;color:#72d8ff;font-size:12px;font-weight:700}
+  #overlay{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:#03060dbb;padding:24px;z-index:2}
+  #panel{width:min(360px,100%);background:#111a2f;border:1px solid #304066;border-radius:18px;padding:20px;text-align:center;box-shadow:0 20px 60px #0008}
+  #panel h2{margin:0 0 8px}#panel p{color:#b5c0dc;line-height:1.4}
+  #panel .actions{display:flex;gap:9px;justify-content:center;flex-wrap:wrap}
+  #panel button{border:0;border-radius:12px;padding:11px 16px;font-weight:800;background:#315ea8;color:#fff}
+  #panel button.secondary{background:#28344d}
+  #hint{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);background:#09101dcc;border:1px solid #30426e;border-radius:999px;padding:8px 12px;color:#c8d5f6;font-size:12px;pointer-events:none;white-space:nowrap;z-index:1}
+  @media(min-width:700px){.grid{grid-template-columns:repeat(3,minmax(0,1fr))}.game-card{min-height:135px}}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="top">
+    <button id="back">Menu</button>
+    <div id="title">Pocket Arcade 10</div>
+    <div id="hud"></div>
+  </div>
+  <div id="screen">
+    <canvas id="c"></canvas>
+    <div id="menu"></div>
+    <div id="hint"></div>
+    <div id="overlay"><div id="panel"></div></div>
+  </div>
+</div>
+<script>
+'use strict';
+const c=document.getElementById('c'),ctx=c.getContext('2d');
+const menu=document.getElementById('menu'),titleEl=document.getElementById('title'),hud=document.getElementById('hud'),hint=document.getElementById('hint'),overlay=document.getElementById('overlay'),panel=document.getElementById('panel'),back=document.getElementById('back');
+let W=0,H=0,dpr=1,game=null,last=0,raf=0,pointer={x:0,y:0,down:false,startX:0,startY:0};
+function resize(){const r=c.getBoundingClientRect();dpr=Math.min(devicePixelRatio||1,2);W=r.width;H=r.height;c.width=W*dpr;c.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);if(game?.resize)game.resize()}
+addEventListener('resize',resize);
+function hs(id,score){const k='pa10_'+id;const old=+(localStorage[k]||0);if(score>old)localStorage[k]=String(Math.floor(score));return Math.max(old,Math.floor(score))}
+function rnd(a,b){return a+Math.random()*(b-a)}
+function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
+function rectHit(a,b){return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y}
+function text(s,x,y,size=24,align='center'){ctx.fillStyle='#fff';ctx.font=`800 ${size}px system-ui`;ctx.textAlign=align;ctx.fillText(s,x,y)}
+function endGame(score,msg='Game over'){const best=hs(game.id,score);overlay.style.display='flex';panel.innerHTML=`<h2>${msg}</h2><p>Score: <b>${Math.floor(score)}</b><br>Best: <b>${best}</b></p><div class="actions"><button id="again">Play again</button><button class="secondary" id="goMenu">Menu</button></div>`;document.getElementById('again').onclick=()=>startGame(game.id);document.getElementById('goMenu').onclick=showMenu}
+function setHud(s){hud.textContent=s}
+function bg(grid=false){ctx.clearRect(0,0,W,H);ctx.fillStyle='#0b1120';ctx.fillRect(0,0,W,H);if(grid){ctx.strokeStyle='#17233e';ctx.lineWidth=1;for(let x=0;x<W;x+=32){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke()}for(let y=0;y<H;y+=32){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}}}
+const defs=[
+['neon','Neon Lane','Dodge falling blocks with left/right taps.'],['tower','One-Tap Tower','Stack sliding blocks. Overhang gets cut away.'],['orbit','Orbit Escape','Tap to switch between inner and outer orbit.'],['dungeon','Swipe Dungeon','Swipe a 4×4 dungeon, grab key, reach exit.'],['drift','Finger Drift','Drag left/right to steer down an endless road.'],['color','Color Gate','Tap to change color and pass matching gates.'],['fish','Tiny Fishing','Tap when the marker is inside the catch zone.'],['factory','60-Second Factory','Tap upgrades and maximize production in one minute.'],['crowd','Crowd Runner','Steer through math gates and grow your crowd.'],['gravity','Gravity Flip','Tap to flip between floor and ceiling.']
+];
+menu.innerHTML=`<div class="hero"><h1>Pocket Arcade 10</h1><p>Ten single-file mobile games. No libraries, assets, or backend.</p></div><div class="grid">${defs.map((d,i)=>`<button class="game-card" data-id="${d[0]}"><b>${i+1}. ${d[1]}</b><small>${d[2]}</small><span>Best: ${localStorage['pa10_'+d[0]]||0}</span></button>`).join('')}</div>`;
+menu.onclick=e=>{const b=e.target.closest('[data-id]');if(b)startGame(b.dataset.id)};
+back.onclick=showMenu;
+function showMenu(){game=null;cancelAnimationFrame(raf);overlay.style.display='none';menu.style.display='block';hint.style.display='none';titleEl.textContent='Pocket Arcade 10';setHud('');menu.querySelectorAll('[data-id]').forEach(b=>{const id=b.dataset.id;b.querySelector('span').textContent='Best: '+(localStorage['pa10_'+id]||0)})}
+function startGame(id){cancelAnimationFrame(raf);overlay.style.display='none';menu.style.display='none';const factory=games[id];game=factory();game.id=id;titleEl.textContent=defs.find(d=>d[0]===id)[1];hint.style.display='block';hint.textContent=game.hint||'';game.init();last=performance.now();raf=requestAnimationFrame(loop)}
+function loop(t){if(!game)return;const dt=Math.min(.035,(t-last)/1000);last=t;game.update(dt);game.draw();raf=requestAnimationFrame(loop)}
+function pos(e){const r=c.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}}
+c.addEventListener('pointerdown',e=>{if(!game)return;pointer={...pos(e),down:true,startX:pos(e).x,startY:pos(e).y};c.setPointerCapture?.(e.pointerId);game.down?.(pointer.x,pointer.y)});
+c.addEventListener('pointermove',e=>{if(!game)return;const p=pos(e);pointer.x=p.x;pointer.y=p.y;game.move?.(p.x,p.y)});
+c.addEventListener('pointerup',e=>{if(!game)return;const p=pos(e);pointer.down=false;game.up?.(p.x,p.y,p.x-pointer.startX,p.y-pointer.startY)});
+
+const games={
+neon:()=>{let p,obs,score,speed,spawn;return{hint:'Tap left / right side',init(){p={x:W/2-15,y:H-70,w:30,h:30};obs=[];score=0;speed=180;spawn=0;setHud('0')},down(x){p.x=clamp(p.x+(x<W/2?-70:70),4,W-p.w-4)},update(dt){score+=dt*10;speed+=dt*3;spawn-=dt;if(spawn<=0){obs.push({x:rnd(8,W-50),y:-40,w:rnd(28,55),h:rnd(24,42)});spawn=rnd(.32,.65)}for(const o of obs)o.y+=speed*dt;obs=obs.filter(o=>o.y<H+60);if(obs.some(o=>rectHit(p,o)))endGame(score);setHud(Math.floor(score))},draw(){bg(true);ctx.fillStyle='#34e6ff';ctx.fillRect(p.x,p.y,p.w,p.h);ctx.fillStyle='#ff4c82';for(const o of obs)ctx.fillRect(o.x,o.y,o.w,o.h)}}},
+tower:()=>{let stack,mover,score,dir,speed;function resetMover(){const last=stack[stack.length-1];mover={x:0,y:last.y-30,w:last.w,h:26};dir=1;speed=130+score*7}return{hint:'Tap to drop the moving block',init(){stack=[{x:W*.2,y:H-45,w:W*.6,h:28}];score=0;resetMover();setHud('0')},down(){const base=stack[stack.length-1],left=Math.max(mover.x,base.x),right=Math.min(mover.x+mover.w,base.x+base.w),nw=right-left;if(nw<8){endGame(score);return}mover.x=left;mover.w=nw;stack.push({...mover});score++;if(mover.y<120)for(const s of stack)s.y+=30;resetMover()},update(dt){mover.x+=dir*speed*dt;if(mover.x<0){mover.x=0;dir=1}if(mover.x+mover.w>W){mover.x=W-mover.w;dir=-1}setHud(score)},draw(){bg();ctx.fillStyle='#5cf2bf';for(const s of stack)ctx.fillRect(s.x,s.y,s.w,s.h);ctx.fillStyle='#6da7ff';ctx.fillRect(mover.x,mover.y,mover.w,mover.h)}}},
+orbit:()=>{let ang,lane,score,haz,spawn;return{hint:'Tap to switch orbit',init(){ang=-Math.PI/2;lane=0;score=0;haz=[];spawn=0;setHud('0')},down(){lane=1-lane},update(dt){ang+=2.2*dt;score+=dt*10;spawn-=dt;if(spawn<0){haz.push({a:ang+rnd(1.3,3.7),lane:Math.random()<.5?0:1});spawn=rnd(.7,1.3)}haz=haz.filter(h=>h.a-ang<6.5);for(const h of haz){let d=Math.atan2(Math.sin(h.a-ang),Math.cos(h.a-ang));if(Math.abs(d)<.14&&h.lane===lane)endGame(score)}setHud(Math.floor(score))},draw(){bg();const cx=W/2,cy=H/2,R=[Math.min(W,H)*.22,Math.min(W,H)*.36];ctx.strokeStyle='#33466f';ctx.lineWidth=3;for(const r of R){ctx.beginPath();ctx.arc(cx,cy,r,0,7);ctx.stroke()}ctx.fillStyle='#ffd65c';ctx.beginPath();ctx.arc(cx,cy,24,0,7);ctx.fill();for(const h of haz){const r=R[h.lane];ctx.fillStyle='#ff527b';ctx.beginPath();ctx.arc(cx+Math.cos(h.a)*r,cy+Math.sin(h.a)*r,10,0,7);ctx.fill()}const r=R[lane];ctx.fillStyle='#62e7ff';ctx.beginPath();ctx.arc(cx+Math.cos(ang)*r,cy+Math.sin(ang)*r,11,0,7);ctx.fill()}}},
+dungeon:()=>{let px,py,key,exit,enemies,score,moves;function cellCenter(x,y){const s=Math.min(W,H-50)/4,ox=(W-s*4)/2,oy=30;return[ox+(x+.5)*s,oy+(y+.5)*s,s,ox,oy]}function newFloor(){px=0;py=3;key={x:Math.floor(rnd(0,4)),y:Math.floor(rnd(0,3)),got:false};exit={x:3,y:0};enemies=[{x:2,y:2},{x:1,y:0}]}function step(dx,dy){px=clamp(px+dx,0,3);py=clamp(py+dy,0,3);moves++;if(px===key.x&&py===key.y)key.got=true;for(const e of enemies){const dx=px-e.x,dy=py-e.y;if(Math.abs(dx)>Math.abs(dy))e.x=clamp(e.x+Math.sign(dx),0,3);else e.y=clamp(e.y+Math.sign(dy),0,3);if(e.x===px&&e.y===py){endGame(score,'Caught');return}}if(key.got&&px===exit.x&&py===exit.y){score+=100;newFloor()}}return{hint:'Swipe to move • get key → exit',init(){score=0;moves=0;newFloor();setHud('0')},up(x,y,dx,dy){if(Math.max(Math.abs(dx),Math.abs(dy))<18)return;if(Math.abs(dx)>Math.abs(dy))step(Math.sign(dx),0);else step(0,Math.sign(dy));score=Math.max(0,score+2);setHud(score)},update(){},draw(){bg();const [,,s,ox,oy]=cellCenter(0,0);ctx.strokeStyle='#3c4d74';for(let i=0;i<=4;i++){ctx.beginPath();ctx.moveTo(ox+i*s,oy);ctx.lineTo(ox+i*s,oy+4*s);ctx.stroke();ctx.beginPath();ctx.moveTo(ox,oy+i*s);ctx.lineTo(ox+4*s,oy+i*s);ctx.stroke()}function dot(x,y,col,label){const [cx,cy]=cellCenter(x,y);ctx.fillStyle=col;ctx.beginPath();ctx.arc(cx,cy,s*.23,0,7);ctx.fill();if(label)text(label,cx,cy+6,16)}if(!key.got)dot(key.x,key.y,'#ffd75c','K');dot(exit.x,exit.y,key.got?'#65ef9b':'#52617e','E');for(const e of enemies)dot(e.x,e.y,'#ff5d76','!');dot(px,py,'#5de8ff','●')}}},
+drift:()=>{let car,road,score,speed,coins;return{hint:'Drag left/right to steer',init(){car={x:W/2,y:H-85,w:28,h:45};road=[];coins=[];score=0;speed=180;for(let i=0;i<18;i++)road.push({y:i*45,center:W/2+Math.sin(i*.5)*W*.18});setHud('0')},move(x){if(pointer.down)car.x=clamp(x,20,W-20)},update(dt){score+=dt*12;speed+=dt*2;for(const r of road)r.y+=speed*dt;while(road[road.length-1].y>H+50)road.pop();while(road[0].y>0)road.unshift({y:road[0].y-45,center:clamp(road[0].center+rnd(-40,40),W*.3,W*.7)});let center=W/2;for(let i=0;i<road.length-1;i++)if(road[i].y<=car.y&&road[i+1].y>car.y)center=(road[i].center+road[i+1].center)/2;if(Math.abs(car.x-center)>W*.25)endGame(score,'Off road');setHud(Math.floor(score))},draw(){bg();ctx.strokeStyle='#39425c';ctx.lineWidth=W*.5;ctx.lineCap='round';ctx.beginPath();road.forEach((r,i)=>i?ctx.lineTo(r.center,r.y):ctx.moveTo(r.center,r.y));ctx.stroke();ctx.strokeStyle='#d9dfef';ctx.lineWidth=3;ctx.setLineDash([18,18]);ctx.beginPath();road.forEach((r,i)=>i?ctx.lineTo(r.center,r.y):ctx.moveTo(r.center,r.y));ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#58dfff';ctx.fillRect(car.x-car.w/2,car.y-car.h/2,car.w,car.h)}}},
+color:()=>{let y,vy,colorIdx,gates,score;const colors=['#ff516d','#5ee6ff','#ffe05f','#76ef86'];return{hint:'Tap to cycle color',init(){y=H*.75;vy=-260;colorIdx=0;gates=[];score=0;for(let i=0;i<5;i++)gates.push({y:H*.55-i*150,c:Math.floor(rnd(0,4)),done:false});setHud('0')},down(){colorIdx=(colorIdx+1)%4},update(dt){vy+=520*dt;y+=vy*dt;if(y>H*.82){y=H*.82;vy=-310}for(const g of gates)g.y+=95*dt;for(const g of gates){if(!g.done&&g.y>y-6&&g.y<y+6){g.done=true;if(g.c!==colorIdx){endGame(score,'Wrong color');return}else score+=10}}gates=gates.filter(g=>g.y<H+20);while(gates.length<5)gates.push({y:Math.min(...gates.map(g=>g.y))-150,c:Math.floor(rnd(0,4)),done:false});setHud(score)},draw(){bg();for(const g of gates){ctx.strokeStyle=colors[g.c];ctx.lineWidth=12;ctx.beginPath();ctx.moveTo(18,g.y);ctx.lineTo(W-18,g.y);ctx.stroke()}ctx.fillStyle=colors[colorIdx];ctx.beginPath();ctx.arc(W/2,y,14,0,7);ctx.fill()}}},
+fish:()=>{let marker,dir,zone,score,time,combo;function next(){zone={x:rnd(W*.1,W*.65),w:rnd(W*.16,W*.28)}}return{hint:'Tap when marker is inside green zone',init(){marker=0;dir=1;score=0;time=30;combo=0;next();setHud('30s')},down(){if(marker>=zone.x&&marker<=zone.x+zone.w){combo++;score+=10+combo*2;next()}else combo=0},update(dt){time-=dt;marker+=dir*(180+score*.5)*dt;if(marker<15){marker=15;dir=1}if(marker>W-15){marker=W-15;dir=-1}if(time<=0)endGame(score,'Fishing done');setHud(Math.ceil(time)+'s')},draw(){bg();text('🎣',W/2,H*.28,54);ctx.fillStyle='#24314d';ctx.fillRect(15,H*.62,W-30,24);ctx.fillStyle='#4dde8a';ctx.fillRect(zone.x,H*.62,zone.w,24);ctx.fillStyle='#fff';ctx.fillRect(marker-4,H*.59,8,42);text('Score '+score,W/2,H*.78,24);text('Combo x'+combo,W/2,H*.84,16)}}},
+factory:()=>{let cash,rate,level,time;return{hint:'Tap to upgrade production',init(){cash=0;rate=1;level=1;time=60;setHud('60s')},down(){const cost=Math.floor(10*Math.pow(1.48,level-1));if(cash>=cost){cash-=cost;level++;rate=Math.pow(1.42,level-1)}},update(dt){time-=dt;cash+=rate*dt;if(time<=0)endGame(cash,'Shift complete');setHud(Math.ceil(time)+'s')},draw(){bg(true);text('FACTORY',W/2,H*.18,28);text('$'+Math.floor(cash),W/2,H*.34,44);text(rate.toFixed(1)+'/ sec',W/2,H*.42,20);const cost=Math.floor(10*Math.pow(1.48,level-1));ctx.fillStyle=cash>=cost?'#47c882':'#33405e';ctx.fillRect(W*.18,H*.55,W*.64,80);text('UPGRADE',W/2,H*.59+18,23);text('$'+cost,W/2,H*.59+48,17);text('Level '+level,W/2,H*.78,18)}}},
+crowd:()=>{let x,count,score,gates,speed;function addGate(y){const plus=Math.random()<.65;const val=plus?Math.floor(rnd(3,11)):Math.floor(rnd(2,6));gates.push({y,left:plus?`+${val}`:`×2`,right:plus?'×2':`-${val}`,done:false})}return{hint:'Drag to choose left/right gate',init(){x=W/2;count=3;score=0;gates=[];speed=160;for(let i=0;i<5;i++)addGate(H*.35-i*150);setHud('3')},move(px){if(pointer.down)x=clamp(px,20,W-20)},update(dt){score+=dt;speed+=dt;for(const g of gates)g.y+=speed*dt;for(const g of gates)if(!g.done&&g.y>H*.72){g.done=true;const op=x<W/2?g.left:g.right;if(op.startsWith('+'))count+=+op.slice(1);else if(op.startsWith('-'))count-=+op.slice(1);else count*=2;if(count<=0){endGame(score,'Crowd lost');return}}gates=gates.filter(g=>g.y<H+40);while(gates.length<5)addGate(Math.min(...gates.map(g=>g.y))-150);setHud(count+' people')},draw(){bg();ctx.strokeStyle='#33415f';ctx.beginPath();ctx.moveTo(W/2,0);ctx.lineTo(W/2,H);ctx.stroke();for(const g of gates){ctx.fillStyle='#244a70';ctx.fillRect(8,g.y-26,W/2-16,52);ctx.fillStyle='#5b3158';ctx.fillRect(W/2+8,g.y-26,W/2-16,52);text(g.left,W*.25,g.y+8,22);text(g.right,W*.75,g.y+8,22)}ctx.fillStyle='#6ee7ff';const n=Math.min(24,count);for(let i=0;i<n;i++){const a=i*2.4,r=Math.sqrt(i)*5;ctx.beginPath();ctx.arc(x+Math.cos(a)*r,H*.8+Math.sin(a)*r,5,0,7);ctx.fill()}}}},
+gravity:()=>{let y,vy,grav,obs,score,spawn;return{hint:'Tap anywhere to flip gravity',init(){y=H*.75;vy=0;grav=1;obs=[];score=0;spawn=0;setHud('0')},down(){grav*=-1;vy=0},update(dt){score+=dt*10;vy+=grav*900*dt;y+=vy*dt;y=clamp(y,24,H-24);if(y===24||y===H-24)vy=0;spawn-=dt;if(spawn<=0){const top=Math.random()<.5;obs.push({x:W+30,y:top?0:H-55,w:28,h:55});spawn=rnd(.75,1.3)}for(const o of obs)o.x-=220*dt;obs=obs.filter(o=>o.x>-50);const p={x:70-12,y:y-12,w:24,h:24};if(obs.some(o=>rectHit(p,o)))endGame(score);setHud(Math.floor(score))},draw(){bg();ctx.fillStyle='#253553';ctx.fillRect(0,0,W,14);ctx.fillRect(0,H-14,W,14);ctx.fillStyle='#ff5b76';for(const o of obs){ctx.beginPath();if(o.y===0){ctx.moveTo(o.x,0);ctx.lineTo(o.x+o.w/2,o.h);ctx.lineTo(o.x+o.w,0)}else{ctx.moveTo(o.x,H);ctx.lineTo(o.x+o.w/2,H-o.h);ctx.lineTo(o.x+o.w,H)}ctx.fill()}ctx.fillStyle='#62e7ff';ctx.beginPath();ctx.arc(70,y,12,0,7);ctx.fill()}}}
+};
+resize();showMenu();
+</script>
+</body>
+</html>
