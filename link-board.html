@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jam Board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --void:#191233;
+    --panel:#221A44;
+    --panel-2:#2B2155;
+    --edge:#3A2E6E;
+    --paper:#F1ECFF;
+    --dim:#9A8DD0;
+    --hot:#FF3D7F;
+    --amber:#FFC24B;
+    --ok:#5BE9B9;
+    --r:10px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--void);
+    background-image:
+      radial-gradient(900px 500px at 50% -12%, rgba(255,61,127,.16), transparent 70%),
+      linear-gradient(var(--void),#140F2A);
+    background-attachment:fixed;
+    color:var(--paper);
+    font-family:"Archivo",system-ui,-apple-system,"Segoe UI",sans-serif;
+    font-size:16px;
+    line-height:1.45;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+  .wrap{max-width:640px;margin:0 auto;padding:20px 18px 72px}
+  a{color:inherit}
+  button{font:inherit;color:inherit;cursor:pointer;background:none;border:none}
+  input{font:inherit}
+  :focus-visible{outline:2px solid var(--amber);outline-offset:2px;border-radius:4px}
+
+  /* ---------- masthead ---------- */
+  .top{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:26px}
+  .mark{font-weight:800;letter-spacing:-.03em;font-size:21px;margin:0}
+  .mark span{color:var(--hot)}
+  .roomchip{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--dim)}
+  .roomchip b{font-weight:600;color:var(--paper);letter-spacing:.01em}
+  .linkbtn{color:var(--dim);text-decoration:underline;text-underline-offset:3px;font-size:13px}
+  .linkbtn:hover{color:var(--paper)}
+
+  /* ---------- gate ---------- */
+  .gate{margin-top:12vh}
+  .gate h2{font-size:clamp(30px,7vw,44px);line-height:1.02;letter-spacing:-.035em;font-weight:800;margin:0 0 14px}
+  .gate p{color:var(--dim);max-width:44ch;margin:0 0 28px}
+  .gate .row{display:flex;gap:10px;flex-wrap:wrap}
+  .field{
+    background:var(--panel);border:1px solid var(--edge);border-radius:var(--r);
+    padding:12px 14px;color:var(--paper);width:100%;
+  }
+  .field::placeholder{color:#7A6DB0}
+  .field:focus{border-color:var(--hot);outline:none}
+  .btn{
+    background:var(--hot);color:#1A0A14;font-weight:700;letter-spacing:-.01em;
+    padding:12px 20px;border-radius:var(--r);white-space:nowrap;
+  }
+  .btn:hover{filter:brightness(1.08)}
+  .btn:active{transform:translateY(1px)}
+  .btn.ghost{background:transparent;color:var(--paper);border:1px solid var(--edge);font-weight:600}
+  .btn.ghost:hover{border-color:var(--dim);filter:none}
+  .gate form{flex:1 1 240px;display:flex;gap:10px}
+  .sep{color:#6B5EA6;font-size:13px;align-self:center;padding:0 2px}
+
+  /* ---------- compose ---------- */
+  .compose{
+    background:var(--panel);border:1px solid var(--edge);border-radius:14px;
+    padding:14px;margin-bottom:22px;
+  }
+  .compose .stack{display:flex;flex-direction:column;gap:9px}
+  .compose .split{display:flex;gap:9px}
+  .compose .split .field{flex:1}
+  .compose .split .btn{flex:0 0 auto}
+  .who{flex:0 0 34%;min-width:110px}
+  .hint{font-size:12.5px;color:#7A6DB0;margin:9px 2px 0}
+  .hint.bad{color:var(--hot)}
+
+  /* ---------- toolbar ---------- */
+  .bar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 2px 12px}
+  .tabs{display:flex;gap:2px;background:var(--panel);border:1px solid var(--edge);border-radius:99px;padding:3px}
+  .tab{padding:5px 14px;border-radius:99px;font-size:13.5px;font-weight:600;color:var(--dim)}
+  .tab[aria-selected="true"]{background:var(--panel-2);color:var(--paper)}
+  .tally{font-size:13px;color:var(--dim)}
+
+  /* ---------- list ---------- */
+  ol.board{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+  .entry{
+    display:grid;grid-template-columns:34px 1fr auto;align-items:center;gap:14px;
+    padding:13px 6px;border-top:1px solid rgba(58,46,110,.65);
+  }
+  .entry:last-child{border-bottom:1px solid rgba(58,46,110,.65)}
+  .rank{
+    font-weight:800;font-size:17px;color:#6B5EA6;text-align:right;
+    font-variant-numeric:tabular-nums;letter-spacing:-.04em;
+  }
+  .entry.lead .rank{color:var(--amber);font-size:24px}
+  .entry.lead .title{font-size:19px}
+  .meat{min-width:0}
+  .title{
+    display:block;font-weight:600;font-size:16.5px;letter-spacing:-.012em;
+    text-decoration:none;overflow-wrap:anywhere;
+  }
+  .title:hover{text-decoration:underline;text-decoration-color:var(--hot);text-underline-offset:3px}
+  .meta{font-size:12.5px;color:var(--dim);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .meta i{font-style:normal;color:#7A6DB0}
+
+  .vote{
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+    width:52px;padding:6px 0;border:1px solid var(--edge);border-radius:var(--r);
+    background:var(--panel);transition:background .12s,border-color .12s,color .12s;
+  }
+  .vote:hover{border-color:var(--dim)}
+  .vote .n{font-weight:800;font-size:17px;font-variant-numeric:tabular-nums;letter-spacing:-.03em}
+  .vote .car{font-size:10px;line-height:1;color:var(--dim)}
+  .vote[aria-pressed="true"]{background:var(--hot);border-color:var(--hot);color:#1A0A14}
+  .vote[aria-pressed="true"] .car{color:#1A0A14;opacity:.7}
+  .bump{animation:bump .22s ease-out}
+  @keyframes bump{0%{transform:scale(1)}45%{transform:scale(1.16)}100%{transform:scale(1)}}
+  .fresh{animation:fresh 1.4s ease-out}
+  @keyframes fresh{0%{background:rgba(91,233,185,.16)}100%{background:transparent}}
+
+  .empty{text-align:center;padding:44px 10px;color:var(--dim)}
+  .empty b{display:block;color:var(--paper);font-weight:600;font-size:18px;margin-bottom:5px}
+
+  /* ---------- status / footer ---------- */
+  .flash{
+    position:fixed;left:50%;transform:translateX(-50%);bottom:18px;z-index:9;
+    background:var(--panel-2);border:1px solid var(--edge);border-radius:99px;
+    padding:9px 18px;font-size:13.5px;box-shadow:0 8px 24px rgba(0,0,0,.45);
+    opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;
+  }
+  .flash.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
+  .flash.err{border-color:var(--hot);color:#FFD3E2}
+  .foot{margin-top:34px;padding-top:16px;border-top:1px solid rgba(58,46,110,.55);
+    font-size:12.5px;color:#7A6DB0;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .foot a{color:#7A6DB0}
+  .danger{color:#7A6DB0;text-decoration:underline;text-underline-offset:3px}
+  .danger:hover{color:var(--hot)}
+  .hidden{display:none !important}
+  @media (max-width:460px){
+    .compose .split{flex-wrap:wrap}
+    .who{flex:1 1 100%}
+    .compose .split .btn{flex:1 1 100%}
+    .entry{grid-template-columns:26px 1fr auto;gap:10px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{animation:none !important;transition:none !important}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <h1 class="mark">jam<span>board</span></h1>
+    <div class="roomchip hidden" id="chip">
+      <span>room <b id="roomName"></b></span>
+      <button class="linkbtn" id="copyLink">copy invite</button>
+    </div>
+  </header>
+
+  <!-- GATE -->
+  <section class="gate" id="gate">
+    <h2>Post your build.<br>Let the room decide.</h2>
+    <p>One board for the jam. Everyone drops a link, everyone votes, the best floats up. No accounts — the invite link is the key.</p>
+    <div class="row">
+      <button class="btn" id="makeRoom">Start a board</button>
+      <span class="sep">or</span>
+      <form id="joinForm">
+        <input class="field" id="joinCode" placeholder="room code" autocomplete="off" spellcheck="false">
+        <button class="btn ghost" type="submit">Join</button>
+      </form>
+    </div>
+    <p class="hint">Boards clear themselves after 24 hours.</p>
+  </section>
+
+  <!-- BOARD -->
+  <main id="app" class="hidden">
+    <form class="compose" id="postForm" autocomplete="off">
+      <div class="stack">
+        <input class="field" id="fUrl" placeholder="https://your-game.itch.io/..." inputmode="url" spellcheck="false" required>
+        <input class="field" id="fTitle" placeholder="Name it — “Rat Physics Deluxe”" maxlength="90">
+        <div class="split">
+          <input class="field who" id="fWho" placeholder="your name" maxlength="24">
+          <button class="btn" type="submit" id="postBtn">Post it</button>
+        </div>
+      </div>
+      <p class="hint" id="formHint"></p>
+    </form>
+
+    <div class="bar">
+      <div class="tabs" role="tablist" aria-label="Sort entries">
+        <button class="tab" role="tab" id="tabTop" aria-selected="true">Top</button>
+        <button class="tab" role="tab" id="tabNew" aria-selected="false">Newest</button>
+      </div>
+      <span class="tally" id="tally"></span>
+    </div>
+
+    <ol class="board" id="board"></ol>
+
+    <div class="empty hidden" id="empty">
+      <b>Nothing on the board yet.</b>
+      Paste the first link — it goes live for everyone in the room.
+    </div>
+
+    <div class="foot">
+      <span>Anyone with the invite link can post and vote. Board expires in 24h.</span>
+      <button class="danger" id="wipe">Clear board</button>
+    </div>
+  </main>
+</div>
+
+<div class="flash" id="flash" role="status" aria-live="polite"></div>
+
+<script>
+(() => {
+  "use strict";
+  const API  = "https://statevec.com";
+  const TTL  = 86400;              // 24h, matches the free tier
+  const POLL = 5000;
+
+  const $ = (id) => document.getElementById(id);
+  let room = "", linksKey = "", votesKey = "", linksHash = "", votesHash = "";
+  let links = [], votes = {}, mine = new Set(), sort = "top";
+  let seen = new Set(), firstLoad = true, timer = null, backoff = 0;
+
+  /* ---------------- statevec plumbing ---------------- */
+
+  async function sha256(text){
+    const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+    return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2,"0")).join("");
+  }
+
+  async function call(method, body){
+    const res = await fetch(API + "/v", {
+      method,
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify(body)
+    });
+    if (res.status === 429) throw Object.assign(new Error("rate"), {rate:true});
+    if (!res.ok) throw new Error(method + " " + res.status);
+    return res.json();
+  }
+
+  async function readBoth(){
+    const res = await fetch(API + "/v/batch", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      cache:"no-store",
+      body: JSON.stringify({hashes:[linksHash, votesHash]})
+    });
+    if (res.status === 429) throw Object.assign(new Error("rate"), {rate:true});
+    if (!res.ok) throw new Error("read " + res.status);
+    const out = await res.json();
+    const r = out.results || [];
+    return {
+      links: Array.isArray(r[0] && r[0].val) ? r[0].val : [],
+      votes: (r[1] && r[1].val && typeof r[1].val === "object") ? r[1].val : {}
+    };
+  }
+
+  // atomic append, with read-modify-write as a safety net
+  async function pushLink(item){
+    try {
+      const d = await call("PATCH", {key:linksKey, op:"append", val:item, max:300, ttl:TTL});
+      if (Array.isArray(d.val)) return d.val;
+    } catch (e) { if (e.rate) throw e; }
+    const cur = (await readBoth()).links;
+    const next = cur.concat([item]);
+    await call("PUT", {key:linksKey, val:next, ttl:TTL});
+    return next;
+  }
+
+  async function bumpVote(id, amount){
+    try {
+      const d = await call("PATCH", {key:votesKey, op:"incr", field:id, amount, ttl:TTL});
+      if (d.val && typeof d.val === "object") return d.val;
+    } catch (e) { if (e.rate) throw e; }
+    const cur = (await readBoth()).votes;
+    cur[id] = Math.max(0, (cur[id] || 0) + amount);
+    await call("PUT", {key:votesKey, val:cur, ttl:TTL});
+    return cur;
+  }
+
+  /* ---------------- room setup ---------------- */
+
+  const WORDS = ["pixel","comet","tofu","hydra","banjo","moth","cobalt","ferret","onyx","quartz",
+                 "static","velvet","zephyr","glitch","cinder","otter","prism","husk"];
+
+  function newCode(){
+    const r = crypto.getRandomValues(new Uint32Array(3));
+    const w = (i) => WORDS[r[i] % WORDS.length];
+    return w(0) + "-" + w(1) + "-" + (r[2] % 1296).toString(36).padStart(2,"0");
+  }
+
+  async function enter(code){
+    room = code.trim().toLowerCase().replace(/\s+/g,"-");
+    if (!room) return;
+    linksKey = "jamboard.v1:" + room + ":links";
+    votesKey = "jamboard.v1:" + room + ":votes";
+    [linksHash, votesHash] = await Promise.all([sha256(linksKey), sha256(votesKey)]);
+
+    try { mine = new Set(JSON.parse(localStorage.getItem("jb:v:" + room) || "[]")); } catch(_) {}
+    $("fWho").value = localStorage.getItem("jb:who") || "";
+
+    location.hash = "room=" + encodeURIComponent(room);
+    $("roomName").textContent = room;
+    $("chip").classList.remove("hidden");
+    $("gate").classList.add("hidden");
+    $("app").classList.remove("hidden");
+    document.title = room + " · Jam Board";
+    $("fUrl").focus();
+    refresh();
+    schedule();
+  }
+
+  function schedule(){
+    clearTimeout(timer);
+    timer = setTimeout(refresh, POLL + backoff);
+  }
+
+  async function refresh(){
+    if (document.hidden) { schedule(); return; }
+    try {
+      const d = await readBoth();
+      links = d.links; votes = d.votes;
+      backoff = 0;
+      render();
+    } catch (e) {
+      if (e.rate) { backoff = 20000; flash("statevec is rate-limiting — slowing down", true); }
+    }
+    schedule();
+  }
+
+  /* ---------------- rendering ---------------- */
+
+  const scoreOf = (l) => votes[l.id] || 0;
+
+  function hostOf(url){
+    try { return new URL(url).hostname.replace(/^www\./,""); } catch(_) { return "link"; }
+  }
+
+  function ago(ts){
+    const s = Math.max(0, Math.floor(Date.now()/1000 - ts));
+    if (s < 60) return "just now";
+    if (s < 3600) return Math.floor(s/60) + "m ago";
+    return Math.floor(s/3600) + "h ago";
+  }
+
+  function render(){
+    const list = links.slice();
+    list.sort(sort === "top"
+      ? (a,b) => scoreOf(b) - scoreOf(a) || a.ts - b.ts
+      : (a,b) => b.ts - a.ts);
+
+    const ol = $("board");
+    ol.textContent = "";
+    $("empty").classList.toggle("hidden", list.length > 0);
+
+    const total = list.reduce((n,l) => n + scoreOf(l), 0);
+    $("tally").textContent = list.length
+      ? list.length + (list.length === 1 ? " entry · " : " entries · ") + total + (total === 1 ? " vote" : " votes")
+      : "";
+
+    list.forEach((l, i) => {
+      const li = document.createElement("li");
+      li.className = "entry";
+      if (sort === "top" && i === 0 && scoreOf(l) > 0) li.classList.add("lead");
+      if (!firstLoad && !seen.has(l.id)) li.classList.add("fresh");
+      seen.add(l.id);
+
+      const rank = document.createElement("div");
+      rank.className = "rank";
+      rank.textContent = sort === "top" ? String(i + 1) : "·";
+      li.appendChild(rank);
+
+      const meat = document.createElement("div");
+      meat.className = "meat";
+
+      const a = document.createElement("a");
+      a.className = "title";
+      a.href = l.url;
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
+      a.textContent = l.title;
+      meat.appendChild(a);
+
+      const meta = document.createElement("div");
+      meta.className = "meta";
+      meta.appendChild(document.createTextNode(hostOf(l.url)));
+      const tail = document.createElement("i");
+      tail.textContent = " · " + (l.by || "anon") + " · " + ago(l.ts);
+      meta.appendChild(tail);
+      meat.appendChild(meta);
+      li.appendChild(meat);
+
+      const vb = document.createElement("button");
+      vb.className = "vote";
+      vb.setAttribute("aria-pressed", mine.has(l.id) ? "true" : "false");
+      vb.setAttribute("aria-label", "Vote for " + l.title);
+      const car = document.createElement("span"); car.className = "car"; car.textContent = "▲";
+      const n = document.createElement("span"); n.className = "n"; n.textContent = scoreOf(l);
+      vb.append(car, n);
+      vb.addEventListener("click", () => vote(l.id, vb, n));
+      li.appendChild(vb);
+
+      ol.appendChild(li);
+    });
+
+    firstLoad = false;
+  }
+
+  /* ---------------- actions ---------------- */
+
+  let busy = false;
+
+  async function vote(id, btn, numEl){
+    if (busy) return;
+    busy = true;
+    const had = mine.has(id);
+    const amount = had ? -1 : 1;
+
+    // optimistic
+    if (had) mine.delete(id); else mine.add(id);
+    votes[id] = Math.max(0, (votes[id] || 0) + amount);
+    btn.setAttribute("aria-pressed", had ? "false" : "true");
+    numEl.textContent = votes[id];
+    numEl.classList.remove("bump"); void numEl.offsetWidth; numEl.classList.add("bump");
+    localStorage.setItem("jb:v:" + room, JSON.stringify([...mine]));
+
+    try {
+      votes = await bumpVote(id, amount);
+      render();
+    } catch (e) {
+      if (had) mine.add(id); else mine.delete(id);
+      localStorage.setItem("jb:v:" + room, JSON.stringify([...mine]));
+      flash(e.rate ? "Too many requests — try again in a moment" : "Vote didn’t save", true);
+      refresh();
+    } finally { busy = false; }
+  }
+
+  function tidyUrl(raw){
+    let v = raw.trim();
+    if (!v) return null;
+    if (!/^https?:\/\//i.test(v)) v = "https://" + v;
+    try {
+      const u = new URL(v);
+      if (u.protocol !== "http:" && u.protocol !== "https:") return null;
+      if (!u.hostname.includes(".")) return null;
+      return u.href;
+    } catch(_) { return null; }
+  }
+
+  $("postForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const hint = $("formHint");
+    hint.className = "hint";
+    const url = tidyUrl($("fUrl").value);
+    if (!url) { hint.textContent = "That doesn’t look like a link — try itch.io/your-game"; hint.className = "hint bad"; return; }
+    if (links.some(l => l.url === url)) { hint.textContent = "Already on the board — go vote for it instead."; hint.className = "hint bad"; return; }
+
+    const by = $("fWho").value.trim().slice(0,24);
+    const title = ($("fTitle").value.trim() || hostOf(url) + " submission").slice(0,90);
+    if (by) localStorage.setItem("jb:who", by);
+
+    const item = {
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2,7),
+      url, title, by, ts: Math.floor(Date.now()/1000)
+    };
+
+    $("postBtn").disabled = true;
+    $("postBtn").textContent = "Posting…";
+    try {
+      links = await pushLink(item);
+      seen.add(item.id);
+      $("fUrl").value = ""; $("fTitle").value = "";
+      hint.textContent = "";
+      render();
+      flash("Posted");
+      $("fUrl").focus();
+    } catch (err) {
+      hint.textContent = err.rate ? "Rate limited — wait a few seconds and post again"
+                                  : "Couldn’t reach statevec. Check your connection and retry.";
+      hint.className = "hint bad";
+    } finally {
+      $("postBtn").disabled = false;
+      $("postBtn").textContent = "Post it";
+    }
+  });
+
+  $("makeRoom").addEventListener("click", () => enter(newCode()));
+  $("joinForm").addEventListener("submit", (e) => { e.preventDefault(); enter($("joinCode").value); });
+
+  $("tabTop").addEventListener("click", () => setSort("top"));
+  $("tabNew").addEventListener("click", () => setSort("new"));
+  function setSort(s){
+    sort = s;
+    $("tabTop").setAttribute("aria-selected", s === "top");
+    $("tabNew").setAttribute("aria-selected", s === "new");
+    render();
+  }
+
+  $("copyLink").addEventListener("click", async () => {
+    const url = location.origin + location.pathname + "#room=" + encodeURIComponent(room);
+    try { await navigator.clipboard.writeText(url); flash("Invite link copied"); }
+    catch(_) { prompt("Share this link:", url); }
+  });
+
+  $("wipe").addEventListener("click", async () => {
+    if (!confirm("Delete every entry and vote on “" + room + "”? This can’t be undone.")) return;
+    try {
+      await call("DELETE", {key:linksKey});
+      await call("DELETE", {key:votesKey});
+      links = []; votes = {}; mine.clear(); seen.clear();
+      localStorage.removeItem("jb:v:" + room);
+      render();
+      flash("Board cleared");
+    } catch(_) { flash("Couldn’t clear the board", true); }
+  });
+
+  let flashTimer = null;
+  function flash(msg, bad){
+    const el = $("flash");
+    el.textContent = msg;
+    el.className = "flash show" + (bad ? " err" : "");
+    clearTimeout(flashTimer);
+    flashTimer = setTimeout(() => { el.className = "flash" + (bad ? " err" : ""); }, 2600);
+  }
+
+  document.addEventListener("visibilitychange", () => { if (!document.hidden && room) refresh(); });
+  window.addEventListener("hashchange", () => {
+    const m = location.hash.match(/room=([^&]+)/);
+    if (m && decodeURIComponent(m[1]) !== room) enter(decodeURIComponent(m[1]));
+  });
+
+  const m = location.hash.match(/room=([^&]+)/);
+  if (m) enter(decodeURIComponent(m[1]));
+})();
+</script>
+</body>
+</html>
